@@ -1,0 +1,37 @@
+[project]
+name = "game"
+version = "0.1.0"
+description = "Eclipsed Evolution - A top-down 2D stealth survival game"
+requires-python = ">=3.14"
+dependencies = ["pygame>=2.6.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/game"]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D100",
+    "D104",
+    "D203",
+    "D213",
+    "COM812",
+    "ISC001",
+    "PD",
+    "EXE",
+    "PLC0415",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

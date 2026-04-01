@@ -1,3 +1,8 @@
+# Nix
+.direnv/
+.envrc
+flake.lock
+
 # Python
 __pycache__/
 *.py[cod]
