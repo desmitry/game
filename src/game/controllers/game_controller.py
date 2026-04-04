@@ -1,6 +1,7 @@
 import pygame
 
 from game.models.player import Player
+from game.rendering.lightmap import Lightmap
 
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
@@ -19,6 +20,7 @@ class GameController:
         self.clock = pygame.time.Clock()
         self.running = False
         self.player = Player(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
+        self.lightmap = Lightmap(SCREEN_WIDTH, SCREEN_HEIGHT)
 
     def run(self) -> None:
         """Execute the main game loop with fixed timestep."""
