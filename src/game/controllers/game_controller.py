@@ -56,7 +56,26 @@ class GameController:
         self.player.update(dt, keys)
 
     def _render(self) -> None:
-        """Draw the current frame to the screen."""
+        """Draw the current frame to the screen with multiply blending."""
         self.screen.fill((0, 0, 0))
+
+        # Draw scene elements
         pygame.draw.rect(self.screen, (128, 128, 128), self.player.rect)
+
+        # Build lightmap
+        self.lightmap.clear()
+        self.lightmap.draw_light(
+            self.player.x,
+            self.player.y,
+            radius=150.0,
+            color=(255, 255, 255),
+            intensity=0.9,
+        )
+
+        # Apply multiply blending
+        darkened = self.screen.copy()
+        darkened.fill((20, 20, 20))
+        darkened.blit(self.lightmap.surface, (0, 0), special_flags=pygame.BLEND_MULT)
+        self.screen.blit(darkened, (0, 0))
+
         pygame.display.flip()
