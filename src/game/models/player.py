@@ -1,5 +1,7 @@
 import pygame
 
+from game.models.flashlight import Flashlight
+
 
 class Player:
     """Represents the player character with position and movement state."""
@@ -15,6 +17,7 @@ class Player:
         self.y = y
         self.speed = 200.0
         self.rect = pygame.Rect(x - 16, y - 16, 32, 32)
+        self.flashlight = Flashlight()
 
     def update(self, dt: float, keys: pygame.key.ScancodeWrapper) -> None:
         """Update player position based on pressed keys.

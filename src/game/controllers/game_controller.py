@@ -55,6 +55,12 @@ class GameController:
         """
         self.player.update(dt, keys)
 
+        rotation_speed = 180.0
+        if keys[pygame.K_q]:
+            self.player.flashlight.rotate(-rotation_speed * dt)
+        if keys[pygame.K_e]:
+            self.player.flashlight.rotate(rotation_speed * dt)
+
     def _render(self) -> None:
         """Draw the current frame to the screen with multiply blending."""
         self.screen.fill((0, 0, 0))
@@ -64,13 +70,7 @@ class GameController:
 
         # Build lightmap
         self.lightmap.clear()
-        self.lightmap.draw_light(
-            self.player.x,
-            self.player.y,
-            radius=150.0,
-            color=(255, 255, 255),
-            intensity=0.9,
-        )
+        self.player.flashlight.draw(self.lightmap, self.player.x, self.player.y)
 
         # Apply multiply blending
         darkened = self.screen.copy()
