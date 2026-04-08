@@ -1,7 +1,7 @@
 import pygame
 
 from game.models.player import Player
-from game.rendering.lightmap import Lightmap
+from game.rendering.renderer import Renderer
 
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
@@ -20,7 +20,7 @@ class GameController:
         self.clock = pygame.time.Clock()
         self.running = False
         self.player = Player(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
-        self.lightmap = Lightmap(SCREEN_WIDTH, SCREEN_HEIGHT)
+        self.renderer = Renderer(self.screen, SCREEN_WIDTH, SCREEN_HEIGHT)
 
     def run(self) -> None:
         """Execute the main game loop with fixed timestep."""
@@ -63,19 +63,4 @@ class GameController:
 
     def _render(self) -> None:
         """Draw the current frame to the screen with multiply blending."""
-        self.screen.fill((0, 0, 0))
-
-        # Draw scene elements
-        pygame.draw.rect(self.screen, (128, 128, 128), self.player.rect)
-
-        # Build lightmap
-        self.lightmap.clear()
-        self.player.flashlight.draw(self.lightmap, self.player.x, self.player.y)
-
-        # Apply multiply blending
-        darkened = self.screen.copy()
-        darkened.fill((20, 20, 20))
-        darkened.blit(self.lightmap.surface, (0, 0), special_flags=pygame.BLEND_MULT)
-        self.screen.blit(darkened, (0, 0))
-
-        pygame.display.flip()
+        self.renderer.render(self.player)
