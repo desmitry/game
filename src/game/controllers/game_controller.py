@@ -1,9 +1,11 @@
+from pathlib import Path
+
 import pygame
 
 from game.models.player import Player
-from game.models.wall import Wall
 from game.rendering.renderer import Renderer
 from game.systems.level import Level
+from game.systems.map_loader import load_map
 
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
@@ -70,13 +72,6 @@ class GameController:
         self.renderer.render(self.player, self.level)
 
     def _setup_test_walls(self) -> None:
-        """Place temporary test walls for development."""
-        wall_positions = [
-            (200, 150, 32, 200),
-            (400, 300, 200, 32),
-            (700, 100, 32, 300),
-            (800, 450, 250, 32),
-            (300, 500, 150, 32),
-        ]
-        for x, y, w, h in wall_positions:
-            self.level.add_wall(Wall(x, y, w, h))
+        """Load walls from the test map file."""
+        map_path = Path(__file__).parent.parent / "game" / "maps" / "test_level.txt"
+        load_map(str(map_path), self.level)
