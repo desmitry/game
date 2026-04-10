@@ -8,6 +8,7 @@ from game.rendering.lightmap import Lightmap
 
 if TYPE_CHECKING:
     from game.models.player import Player
+    from game.systems.level import Level
 
 
 class Renderer:
@@ -24,13 +25,18 @@ class Renderer:
         self.screen = screen
         self.lightmap = Lightmap(width, height)
 
-    def render(self, player: Player) -> None:
-        """Draw the complete scene including lighting.
+    def render(self, player: Player, level: Level) -> None:
+        """Draw the complete scene including lighting and walls.
 
         Args:
             player: Player model to render.
+            level: Level containing walls and spatial grid.
         """
         self.screen.fill((0, 0, 0))
+
+        # Draw walls
+        for wall in level.walls:
+            pygame.draw.rect(self.screen, (80, 80, 80), wall.rect)
 
         # Draw scene elements
         pygame.draw.rect(self.screen, (128, 128, 128), player.rect)

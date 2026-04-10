@@ -1,7 +1,9 @@
 import pygame
 
 from game.models.player import Player
+from game.models.wall import Wall
 from game.rendering.renderer import Renderer
+from game.systems.level import Level
 
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
@@ -20,7 +22,9 @@ class GameController:
         self.clock = pygame.time.Clock()
         self.running = False
         self.player = Player(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
+        self.level = Level(SCREEN_WIDTH, SCREEN_HEIGHT)
         self.renderer = Renderer(self.screen, SCREEN_WIDTH, SCREEN_HEIGHT)
+        self._setup_test_walls()
 
     def run(self) -> None:
         """Execute the main game loop with fixed timestep."""
@@ -63,4 +67,16 @@ class GameController:
 
     def _render(self) -> None:
         """Draw the current frame to the screen with multiply blending."""
-        self.renderer.render(self.player)
+        self.renderer.render(self.player, self.level)
+
+    def _setup_test_walls(self) -> None:
+        """Place temporary test walls for development."""
+        wall_positions = [
+            (200, 150, 32, 200),
+            (400, 300, 200, 32),
+            (700, 100, 32, 300),
+            (800, 450, 250, 32),
+            (300, 500, 150, 32),
+        ]
+        for x, y, w, h in wall_positions:
+            self.level.add_wall(Wall(x, y, w, h))
