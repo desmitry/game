@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeVar
 
 if TYPE_CHECKING:
     from pygame import Rect
 
+T = TypeVar("T")
 
-class UniformGrid:
+
+class UniformGrid[T]:
     """Spatial hashing grid that partitions entities into buckets for fast queries."""
 
     def __init__(self, cell_size: int) -> None:
@@ -17,7 +19,7 @@ class UniformGrid:
             cell_size: Width and height of each bucket cell in pixels.
         """
         self.cell_size = cell_size
-        self._buckets: dict[tuple[int, int], list[Rect]] = defaultdict(list)
+        self._buckets: dict[tuple[int, int], list[T]] = defaultdict(list)
 
     def _cell_coords(self, x: float, y: float) -> tuple[int, int]:
         """Convert world coordinates to bucket coordinates.
@@ -31,32 +33,33 @@ class UniformGrid:
         """
         return (int(x // self.cell_size), int(y // self.cell_size))
 
-    def insert(self, rect: Rect) -> None:
-        """Add a rectangle to all buckets it overlaps.
+    def insert(self, item: T, rect: Rect) -> None:
+        """Add an item to all buckets it overlaps.
 
         Args:
-            rect: Pygame Rect to insert into the grid.
+            item: Object to insert into the grid.
+            rect: Bounding rectangle for spatial placement.
         """
         min_cell = self._cell_coords(rect.left, rect.top)
         max_cell = self._cell_coords(rect.right - 1, rect.bottom - 1)
 
         for cx in range(min_cell[0], max_cell[0] + 1):
             for cy in range(min_cell[1], max_cell[1] + 1):
-                self._buckets[(cx, cy)].append(rect)
+                self._buckets[(cx, cy)].append(item)
 
-    def query(self, rect: Rect) -> list[Rect]:
-        """Return all rectangles in buckets overlapping the given rect.
+    def query(self, rect: Rect) -> list[T]:
+        """Return all items in buckets overlapping the given rect.
 
         Args:
             rect: Query rectangle.
 
         Returns:
-            List of rects in overlapping buckets (may contain duplicates).
+            List of items in overlapping buckets (may contain duplicates).
         """
         min_cell = self._cell_coords(rect.left, rect.top)
         max_cell = self._cell_coords(rect.right - 1, rect.bottom - 1)
 
-        results: list[Rect] = []
+        results: list[T] = []
         seen: set[int] = set()
 
         for cx in range(min_cell[0], max_cell[0] + 1):
@@ -73,18 +76,18 @@ class UniformGrid:
         """Remove all entries from the grid."""
         self._buckets.clear()
 
-    def query_nearby(self, rect: Rect, radius_cells: int = 1) -> list[Rect]:
-        """Return all rectangles in nearby buckets within a radius.
+    def query_nearby(self, rect: Rect, radius_cells: int = 1) -> list[T]:
+        """Return all items in nearby buckets within a radius.
 
         Args:
             rect: Center rectangle for the query.
             radius_cells: Number of additional cells to search in each direction.
 
         Returns:
-            List of rects in nearby buckets.
+            List of items in nearby buckets.
         """
         center = self._cell_coords(rect.centerx, rect.centery)
-        results: list[Rect] = []
+        results: list[T] = []
         seen: set[int] = set()
 
         for dx in range(-radius_cells, radius_cells + 1):

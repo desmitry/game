@@ -59,7 +59,7 @@ class GameController:
             dt: Delta time in seconds.
             keys: Current keyboard state.
         """
-        self.player.update(dt, keys)
+        self.player.update(dt, keys, self.level)
 
         rotation_speed = 180.0
         if keys[pygame.K_q]:

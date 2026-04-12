@@ -24,7 +24,7 @@ class Level:
         """
         self.width = width
         self.height = height
-        self.grid = UniformGrid(CELL_SIZE)
+        self.grid: UniformGrid[Wall] = UniformGrid(CELL_SIZE)
         self.walls: list[Wall] = []
 
     def add_wall(self, wall: Wall) -> None:
@@ -34,21 +34,21 @@ class Level:
             wall: Wall to add to the level.
         """
         self.walls.append(wall)
-        self.grid.insert(wall.rect)
+        self.grid.insert(wall, wall.rect)
 
     def rebuild_grid(self) -> None:
         """Rebuild the spatial grid from all registered walls."""
         self.grid.clear()
         for wall in self.walls:
-            self.grid.insert(wall.rect)
+            self.grid.insert(wall, wall.rect)
 
-    def get_nearby_walls(self, rect: Rect) -> list[Rect]:
+    def get_nearby_walls(self, rect: Rect) -> list[Wall]:
         """Query walls near the given rectangle using the spatial grid.
 
         Args:
             rect: Query rectangle.
 
         Returns:
-            List of wall rects in nearby buckets.
+            List of Wall objects in nearby buckets.
         """
         return self.grid.query_nearby(rect)

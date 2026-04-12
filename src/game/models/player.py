@@ -1,6 +1,14 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import pygame
 
 from game.models.flashlight import Flashlight
+
+if TYPE_CHECKING:
+    from game.models.wall import Wall
+    from game.systems.level import Level
 
 
 class Player:
@@ -19,12 +27,29 @@ class Player:
         self.rect = pygame.Rect(x - 16, y - 16, 32, 32)
         self.flashlight = Flashlight()
 
-    def update(self, dt: float, keys: pygame.key.ScancodeWrapper) -> None:
-        """Update player position based on pressed keys.
+    def update(self, dt: float, keys: pygame.key.ScancodeWrapper, level: Level) -> None:
+        """Update player position based on pressed keys with collision resolution.
 
         Args:
             dt: Delta time in seconds.
             keys: Current keyboard state from pygame.key.get_pressed().
+            level: Level containing walls for collision checks.
+        """
+        dx, dy = self._read_input(keys)
+        move_x = dx * self.speed * dt
+        move_y = dy * self.speed * dt
+
+        self._move_axis(move_x, move_y, level, axis="x")
+        self._move_axis(move_x, move_y, level, axis="y")
+
+    def _read_input(self, keys: pygame.key.ScancodeWrapper) -> tuple[float, float]:
+        """Convert keyboard state to a normalized direction vector.
+
+        Args:
+            keys: Current keyboard state.
+
+        Returns:
+            Tuple of (dx, dy) normalized direction components.
         """
         dx = 0.0
         dy = 0.0
@@ -43,6 +68,48 @@ class Player:
             dx /= length
             dy /= length
 
-        self.x += dx * self.speed * dt
-        self.y += dy * self.speed * dt
-        self.rect.center = (int(self.x), int(self.y))
+        return dx, dy
+
+    def _move_axis(self, move_x: float, move_y: float, level: Level, axis: str) -> None:
+        """Move the player along one axis and resolve wall collisions.
+
+        Args:
+            move_x: Horizontal displacement.
+            move_y: Vertical displacement.
+            level: Level containing walls.
+            axis: Either "x" or "y".
+        """
+        if axis == "x":
+            self.x += move_x
+            self.rect.centerx = int(self.x)
+            displacement = move_x
+        else:
+            self.y += move_y
+            self.rect.centery = int(self.y)
+            displacement = move_y
+
+        for wall in level.get_nearby_walls(self.rect):
+            self._resolve_collision(wall, displacement, axis)
+
+    def _resolve_collision(self, wall: Wall, displacement: float, axis: str) -> None:
+        """Resolve overlap with a single wall along the given axis.
+
+        Args:
+            wall: Wall to check against.
+            displacement: Signed movement amount this frame.
+            axis: Either "x" or "y".
+        """
+        if not self.rect.colliderect(wall.rect):
+            return
+
+        if axis == "x":
+            if displacement > 0:
+                self.rect.right = wall.rect.left
+            elif displacement < 0:
+                self.rect.left = wall.rect.right
+            self.x = self.rect.centerx
+        elif displacement > 0:
+            self.rect.bottom = wall.rect.top
+        elif displacement < 0:
+            self.rect.top = wall.rect.bottom
+            self.y = self.rect.centery
