@@ -14,6 +14,8 @@ if TYPE_CHECKING:
 class Player:
     """Represents the player character with position and movement state."""
 
+    SKIN = 2  # Collision skin shrink in pixels to allow wall sliding.
+
     def __init__(self, x: float, y: float) -> None:
         """Initialize player at the given position.
 
@@ -25,6 +27,7 @@ class Player:
         self.y = y
         self.speed = 200.0
         self.rect = pygame.Rect(x - 16, y - 16, 32, 32)
+        self.collision_rect = self.rect.inflate(-self.SKIN * 2, -self.SKIN * 2)
         self.flashlight = Flashlight()
 
     def update(self, dt: float, keys: pygame.key.ScancodeWrapper, level: Level) -> None:
@@ -41,6 +44,8 @@ class Player:
 
         self._move_axis(move_x, move_y, level, axis="x")
         self._move_axis(move_x, move_y, level, axis="y")
+
+        self.collision_rect.center = self.rect.center
 
     def _read_input(self, keys: pygame.key.ScancodeWrapper) -> tuple[float, float]:
         """Convert keyboard state to a normalized direction vector.
@@ -81,15 +86,18 @@ class Player:
         """
         if axis == "x":
             self.x += move_x
-            self.rect.centerx = int(self.x)
+            self.collision_rect.centerx = int(self.x)
             displacement = move_x
         else:
             self.y += move_y
-            self.rect.centery = int(self.y)
+            self.collision_rect.centery = int(self.y)
             displacement = move_y
 
-        for wall in level.get_nearby_walls(self.rect):
+        for wall in level.get_nearby_walls(self.collision_rect):
             self._resolve_collision(wall, displacement, axis)
+
+        self.rect.centerx = int(self.x)
+        self.rect.centery = int(self.y)
 
     def _resolve_collision(self, wall: Wall, displacement: float, axis: str) -> None:
         """Resolve overlap with a single wall along the given axis.
@@ -99,17 +107,17 @@ class Player:
             displacement: Signed movement amount this frame.
             axis: Either "x" or "y".
         """
-        if not self.rect.colliderect(wall.rect):
+        if not self.collision_rect.colliderect(wall.rect):
             return
 
         if axis == "x":
             if displacement > 0:
-                self.rect.right = wall.rect.left
+                self.collision_rect.right = wall.rect.left
             elif displacement < 0:
-                self.rect.left = wall.rect.right
-            self.x = self.rect.centerx
+                self.collision_rect.left = wall.rect.right
+            self.x = self.collision_rect.centerx
         elif displacement > 0:
-            self.rect.bottom = wall.rect.top
+            self.collision_rect.bottom = wall.rect.top
         elif displacement < 0:
-            self.rect.top = wall.rect.bottom
-            self.y = self.rect.centery
+            self.collision_rect.top = wall.rect.bottom
+            self.y = self.collision_rect.centery
