@@ -7,6 +7,7 @@ import pygame
 from game.rendering.lightmap import Lightmap
 
 if TYPE_CHECKING:
+    from game.models.flare import Flare
     from game.models.player import Player
     from game.systems.level import Level
 
@@ -25,12 +26,13 @@ class Renderer:
         self.screen = screen
         self.lightmap = Lightmap(width, height)
 
-    def render(self, player: Player, level: Level) -> None:
+    def render(self, player: Player, level: Level, flares: list[Flare]) -> None:
         """Draw the complete scene including lighting and walls.
 
         Args:
             player: Player model to render.
             level: Level containing walls and spatial grid.
+            flares: Active flare list for light and rendering.
         """
         self.screen.fill((0, 0, 0))
 
@@ -41,9 +43,38 @@ class Renderer:
         # Draw scene elements
         pygame.draw.rect(self.screen, (128, 128, 128), player.rect)
 
+        # Draw flares
+        for flare in flares:
+            if flare.active:
+                alpha = int(flare.intensity * 255)
+                pygame.draw.circle(
+                    self.screen,
+                    (255, 100, 50),
+                    flare.rect.center,
+                    4,
+                )
+                if alpha > 0:
+                    pygame.draw.circle(
+                        self.screen,
+                        (255, 100, 50, alpha),
+                        flare.rect.center,
+                        8,
+                        width=1,
+                    )
+
         # Build lightmap
         self.lightmap.clear()
         player.flashlight.draw(self.lightmap, player.x, player.y)
+
+        for flare in flares:
+            if flare.active:
+                self.lightmap.draw_light(
+                    flare.x,
+                    flare.y,
+                    radius=120.0 * flare.intensity,
+                    color=(255, 140, 50),
+                    intensity=flare.intensity * 0.8,
+                )
 
         # Apply multiply blending
         darkened = self.screen.copy()

@@ -2,15 +2,18 @@ from pathlib import Path
 
 import pygame
 
+from game.models.flare import Flare
 from game.models.player import Player
 from game.rendering.renderer import Renderer
 from game.systems.level import Level
 from game.systems.map_loader import load_map
+from game.systems.object_pool import ObjectPool
 
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
 TARGET_FPS = 60
 FIXED_DT = 1.0 / TARGET_FPS
+FLOOR_Y = SCREEN_HEIGHT - 32
 
 
 class GameController:
@@ -26,6 +29,12 @@ class GameController:
         self.player = Player(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
         self.level = Level(SCREEN_WIDTH, SCREEN_HEIGHT)
         self.renderer = Renderer(self.screen, SCREEN_WIDTH, SCREEN_HEIGHT)
+        self.flare_pool: ObjectPool[Flare] = ObjectPool(
+            factory=Flare,
+            reset=lambda f: f.reset(),
+            size=20,
+        )
+        self._throw_cooldown = 0.0
         self._setup_test_walls()
 
     def run(self) -> None:
@@ -67,11 +76,35 @@ class GameController:
         if keys[pygame.K_e]:
             self.player.flashlight.rotate(rotation_speed * dt)
 
+        self._throw_cooldown = max(0.0, self._throw_cooldown - dt)
+        if keys[pygame.K_f] and self._throw_cooldown <= 0:
+            self._throw_flare()
+            self._throw_cooldown = 1.0
+
+        for flare in self.flare_pool.active:
+            flare.update(dt, FLOOR_Y)
+
     def _render(self) -> None:
         """Draw the current frame to the screen with multiply blending."""
-        self.renderer.render(self.player, self.level)
+        self.renderer.render(self.player, self.level, self.flare_pool.active)
 
     def _setup_test_walls(self) -> None:
         """Load walls from the test map file."""
         map_path = Path(__file__).parent.parent / "game" / "maps" / "test_level.txt"
         load_map(str(map_path), self.level)
+
+    def _throw_flare(self) -> None:
+        """Launch a flare from the player position in the facing direction."""
+        import math
+
+        flare = self.flare_pool.acquire()
+        if flare is None:
+            return
+
+        angle = math.radians(self.player.flashlight.angle)
+        flare.launch(
+            x=self.player.x,
+            y=self.player.y,
+            angle=angle,
+            speed=300.0,
+        )
