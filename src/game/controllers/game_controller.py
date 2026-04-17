@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pygame
 
+from game.models.enemy import Enemy
 from game.models.flare import Flare
 from game.models.player import Player
 from game.rendering.renderer import Renderer
@@ -35,7 +36,9 @@ class GameController:
             size=20,
         )
         self._throw_cooldown = 0.0
+        self.enemies: list[Enemy] = []
         self._setup_test_walls()
+        self._setup_test_enemies()
 
     def run(self) -> None:
         """Execute the main game loop with fixed timestep."""
@@ -84,14 +87,23 @@ class GameController:
         for flare in self.flare_pool.active:
             flare.update(dt, FLOOR_Y)
 
+        for enemy in self.enemies:
+            enemy.update(dt)
+
     def _render(self) -> None:
         """Draw the current frame to the screen with multiply blending."""
-        self.renderer.render(self.player, self.level, self.flare_pool.active)
+        self.renderer.render(self.player, self.level, self.flare_pool.active, self.enemies)
 
     def _setup_test_walls(self) -> None:
         """Load walls from the test map file."""
         map_path = Path(__file__).parent.parent / "game" / "maps" / "test_level.txt"
         load_map(str(map_path), self.level)
+
+    def _setup_test_enemies(self) -> None:
+        """Spawn placeholder enemies for development."""
+        spawn_points = [(200, 200), (600, 300), (900, 150)]
+        for x, y in spawn_points:
+            self.enemies.append(Enemy(x, y))
 
     def _throw_flare(self) -> None:
         """Launch a flare from the player position in the facing direction."""

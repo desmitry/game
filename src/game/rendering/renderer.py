@@ -7,6 +7,7 @@ import pygame
 from game.rendering.lightmap import Lightmap
 
 if TYPE_CHECKING:
+    from game.models.enemy import Enemy
     from game.models.flare import Flare
     from game.models.player import Player
     from game.systems.level import Level
@@ -26,13 +27,20 @@ class Renderer:
         self.screen = screen
         self.lightmap = Lightmap(width, height)
 
-    def render(self, player: Player, level: Level, flares: list[Flare]) -> None:
+    def render(
+        self,
+        player: Player,
+        level: Level,
+        flares: list[Flare],
+        enemies: list[Enemy],
+    ) -> None:
         """Draw the complete scene including lighting and walls.
 
         Args:
             player: Player model to render.
             level: Level containing walls and spatial grid.
             flares: Active flare list for light and rendering.
+            enemies: Enemy list for rendering.
         """
         self.screen.fill((0, 0, 0))
 
@@ -61,6 +69,10 @@ class Renderer:
                         8,
                         width=1,
                     )
+
+        # Draw enemies
+        for enemy in enemies:
+            pygame.draw.rect(self.screen, (180, 50, 50), enemy.rect)
 
         # Build lightmap
         self.lightmap.clear()
