@@ -1,10 +1,13 @@
 import pygame
 
+from game.systems.raycast import raycast
+
 
 class Enemy:
     """Base enemy entity with position and patrol state."""
 
     ARRIVAL_THRESHOLD = 4.0
+    VISION_RADIUS = 200.0
 
     def __init__(self, x: float, y: float) -> None:
         """Initialize enemy at the given position.
@@ -52,3 +55,23 @@ class Enemy:
         self.patrol_target_x = x
         self.patrol_target_y = y
         self.is_patrolling = True
+
+    def can_see(self, target_x: float, target_y: float, walls: list[pygame.Rect]) -> bool:
+        """Check line of sight to a target point.
+
+        Args:
+            target_x: Target x coordinate.
+            target_y: Target y coordinate.
+            walls: List of wall rectangles that block vision.
+
+        Returns:
+            True if the target is within vision range and not blocked.
+        """
+        dx = target_x - self.x
+        dy = target_y - self.y
+        dist = (dx * dx + dy * dy) ** 0.5
+
+        if dist > self.VISION_RADIUS:
+            return False
+
+        return raycast((self.x, self.y), (target_x, target_y), walls)
