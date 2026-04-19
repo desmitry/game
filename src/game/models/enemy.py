@@ -1,6 +1,13 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import pygame
 
 from game.systems.raycast import raycast
+
+if TYPE_CHECKING:
+    from game.systems.level import Level
 
 
 class Enemy:
@@ -75,3 +82,32 @@ class Enemy:
             return False
 
         return raycast((self.x, self.y), (target_x, target_y), walls)
+
+    def can_see_optimized(self, target_x: float, target_y: float, level: Level) -> bool:
+        """Check line of sight using spatial grid optimization.
+
+        Args:
+            target_x: Target x coordinate.
+            target_y: Target y coordinate.
+            level: Level with spatial grid for wall queries.
+
+        Returns:
+            True if the target is within vision range and not blocked.
+        """
+        dx = target_x - self.x
+        dy = target_y - self.y
+        dist = (dx * dx + dy * dy) ** 0.5
+
+        if dist > self.VISION_RADIUS:
+            return False
+
+        query_rect = pygame.Rect(
+            min(self.x, target_x) - 16,
+            min(self.y, target_y) - 16,
+            abs(dx) + 32,
+            abs(dy) + 32,
+        )
+        nearby_walls = level.get_nearby_walls(query_rect)
+        wall_rects = [w.rect for w in nearby_walls]
+
+        return raycast((self.x, self.y), (target_x, target_y), wall_rects)
