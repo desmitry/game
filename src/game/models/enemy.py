@@ -1,10 +1,10 @@
-from __future__ import annotations
-
+import math
 from typing import TYPE_CHECKING
 
 import pygame
 
 from game.systems.raycast import raycast
+from game.systems.vision_cone import VisionCone
 
 if TYPE_CHECKING:
     from game.systems.level import Level
@@ -30,6 +30,7 @@ class Enemy:
         self.patrol_target_x = x
         self.patrol_target_y = y
         self.is_patrolling = True
+        self.vision_cone = VisionCone()
 
     def update(self, dt: float) -> None:
         """Move enemy toward its current patrol target.
@@ -44,6 +45,8 @@ class Enemy:
         if dist < self.ARRIVAL_THRESHOLD:
             self.is_patrolling = False
             return
+
+        self.vision_cone.angle = math.degrees(math.atan2(dy, dx))
 
         move_x = (dx / dist) * self.speed * dt
         move_y = (dy / dist) * self.speed * dt
