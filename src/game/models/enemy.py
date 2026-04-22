@@ -15,6 +15,9 @@ class Enemy:
 
     ARRIVAL_THRESHOLD = 4.0
     VISION_RADIUS = 200.0
+    SUSPICION_THRESHOLD = 0.8
+    SUSPICION_DECAY_RATE = 0.3
+    SUSPICION_GAIN_RATE = 1.5
 
     def __init__(self, x: float, y: float) -> None:
         """Initialize enemy at the given position.
@@ -31,6 +34,10 @@ class Enemy:
         self.patrol_target_y = y
         self.is_patrolling = True
         self.vision_cone = VisionCone()
+        self.suspicion = 0.0
+        self.last_known_player_x = x
+        self.last_known_player_y = y
+        self.is_alerted = False
 
     def update(self, dt: float) -> None:
         """Move enemy toward its current patrol target.
@@ -114,3 +121,27 @@ class Enemy:
         wall_rects = [w.rect for w in nearby_walls]
 
         return raycast((self.x, self.y), (target_x, target_y), wall_rects)
+
+    def update_suspicion(self, *, detected: bool, dt: float) -> None:
+        """Update suspicion meter with hysteresis behavior.
+
+        Args:
+            detected: Whether the player is currently detected.
+            dt: Delta time in seconds.
+        """
+        if detected:
+            self.suspicion = min(
+                1.0,
+                self.suspicion + self.SUSPICION_GAIN_RATE * dt,
+            )
+            self.last_known_player_x = self.vision_cone.angle
+        else:
+            self.suspicion = max(
+                0.0,
+                self.suspicion - self.SUSPICION_DECAY_RATE * dt,
+            )
+
+        if self.suspicion >= self.SUSPICION_THRESHOLD:
+            self.is_alerted = True
+        elif self.suspicion <= 0.0:
+            self.is_alerted = False
