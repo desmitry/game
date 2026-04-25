@@ -3,10 +3,18 @@ from typing import TYPE_CHECKING
 
 import pygame
 
+from game.ai.bt_actions import (
+    CheckSuspicion,
+    InvestigateLocation,
+    MoveToPatrol,
+    WanderAction,
+)
+from game.ai.bt_composites import Selector, Sequence
 from game.systems.raycast import raycast
 from game.systems.vision_cone import VisionCone
 
 if TYPE_CHECKING:
+    from game.ai.bt_node import BTNode
     from game.systems.level import Level
 
 
@@ -38,6 +46,8 @@ class Enemy:
         self.last_known_player_x = x
         self.last_known_player_y = y
         self.is_alerted = False
+        self.bt = self._build_behavior_tree()
+        self.bt_context: dict = {"enemy": self}
 
     def update(self, dt: float) -> None:
         """Move enemy toward its current patrol target.
@@ -145,3 +155,33 @@ class Enemy:
             self.is_alerted = True
         elif self.suspicion <= 0.0:
             self.is_alerted = False
+
+    def _build_behavior_tree(self) -> BTNode:
+        """Construct the enemy's behavior tree.
+
+        Returns:
+            Root BTNode of the tree with Wander and Investigate branches.
+        """
+        return Selector(
+            children=[
+                Sequence(
+                    children=[
+                        CheckSuspicion(),
+                        InvestigateLocation(),
+                    ]
+                ),
+                MoveToPatrol(),
+                WanderAction(),
+            ]
+        )
+
+    def tick_behavior_tree(self, player_x: float, player_y: float) -> None:
+        """Execute the behavior tree for this frame.
+
+        Args:
+            player_x: Player x coordinate.
+            player_y: Player y coordinate.
+        """
+        self.bt_context["player_x"] = player_x
+        self.bt_context["player_y"] = player_y
+        self.bt.tick(self.bt_context)
