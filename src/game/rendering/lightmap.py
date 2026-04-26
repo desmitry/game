@@ -4,6 +4,8 @@ import pygame
 class Lightmap:
     """RenderTarget surface for accumulating light sources before blending."""
 
+    AMBIENT = (2, 2, 2)
+
     def __init__(self, width: int, height: int) -> None:
         """Create a lightmap surface sized to the screen.
 
@@ -13,11 +15,11 @@ class Lightmap:
         """
         self.width = width
         self.height = height
-        self.surface = pygame.Surface((width, height), flags=pygame.SRCALPHA)
+        self.surface = pygame.Surface((width, height))
 
     def clear(self) -> None:
-        """Reset the lightmap to fully opaque white (full illumination)."""
-        self.surface.fill((255, 255, 255, 255))
+        """Reset the lightmap to near-black (total darkness)."""
+        self.surface.fill(self.AMBIENT)
 
     def draw_light(
         self,
@@ -27,7 +29,7 @@ class Lightmap:
         color: tuple[int, int, int],
         intensity: float = 1.0,
     ) -> None:
-        """Draw a radial gradient light onto the lightmap.
+        """Draw a radial gradient light onto the lightmap using additive blending.
 
         Args:
             x: Center x coordinate of the light.
@@ -40,16 +42,21 @@ class Lightmap:
         if diameter <= 0:
             return
 
-        gradient = pygame.Surface((diameter, diameter), flags=pygame.SRCALPHA)
+        gradient = pygame.Surface((diameter, diameter))
+        gradient.fill(self.AMBIENT)
         center = int(radius)
 
         for r in range(center, 0, -1):
-            alpha = int((r / center) * 255 * intensity)
-            pygame.draw.circle(
-                gradient,
-                (*color, alpha),
-                (center, center),
-                r,
+            brightness = int((r / center) * 255 * intensity)
+            c = (
+                min(255, color[0] * brightness // 255),
+                min(255, color[1] * brightness // 255),
+                min(255, color[2] * brightness // 255),
             )
+            pygame.draw.circle(gradient, c, (center, center), r)
 
-        self.surface.blit(gradient, (x - radius, y - radius))
+        self.surface.blit(
+            gradient,
+            (x - radius, y - radius),
+            special_flags=pygame.BLEND_RGB_ADD,
+        )

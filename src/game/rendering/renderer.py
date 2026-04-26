@@ -90,7 +90,6 @@ class Renderer:
 
         # Apply multiply blending
         darkened = self.screen.copy()
-        darkened.fill((20, 20, 20))
         darkened.blit(self.lightmap.surface, (0, 0), special_flags=pygame.BLEND_MULT)
         self.screen.blit(darkened, (0, 0))
 
