@@ -4,13 +4,14 @@ from typing import TYPE_CHECKING
 
 from game.ai.astar import astar
 from game.ai.bt_node import BTNode, NodeState
-from game.ai.pathfinding_grid import TILE_SIZE
+from game.ai.pathfinding_grid import TILE_SIZE, PathfindingGrid
 
 if TYPE_CHECKING:
     import pygame
 
-    from game.ai.pathfinding_grid import PathfindingGrid
     from game.models.enemy import Enemy
+
+PathNode = tuple[int, int]
 
 
 class ChaseAction(BTNode):
@@ -72,12 +73,9 @@ class ChaseAction(BTNode):
         return NodeState.RUNNING
 
     def _compute_path(
-        self,
-        enemy: Enemy,
-        player_rect: pygame.Rect,
-        grid: PathfindingGrid,
-    ) -> list[tuple[int, int]]:
-        """Calculate A* path from enemy to player.
+        self, enemy: Enemy, player_rect: pygame.Rect, grid: PathfindingGrid
+    ) -> list[PathNode]:
+        """Calculate A* path from enemy to player with corner smoothing.
 
         Args:
             enemy: The chasing enemy.
@@ -89,4 +87,66 @@ class ChaseAction(BTNode):
         """
         start = grid.world_to_tile(enemy.x, enemy.y)
         goal = grid.world_to_tile(player_rect.centerx, player_rect.centery)
-        return astar(grid, start, goal)
+        path = astar(grid, start, goal)
+        return _smooth_path(grid, path)
+
+
+def _smooth_path(grid: PathfindingGrid, path: list[PathNode]) -> list[PathNode]:
+    """Simplify path by skipping waypoints with clear line of sight.
+
+    Args:
+        grid: Pathfinding grid for clearance checks.
+        path: Raw A* path.
+
+    Returns:
+        Simplified path avoiding tight corner cuts.
+    """
+    min_path_len = 2
+    if len(path) <= min_path_len:
+        return path
+
+    smoothed = [path[0]]
+    i = 0
+
+    while i < len(path) - 1:
+        for j in range(len(path) - 1, i, -1):
+            if _has_clearance(grid, path[i], path[j]):
+                i = j
+                smoothed.append(path[i])
+                break
+        else:
+            i += 1
+            smoothed.append(path[i])
+
+    return smoothed
+
+
+def _has_clearance(grid: PathfindingGrid, a: PathNode, b: PathNode) -> bool:
+    """Check if a straight line between two tiles has corner clearance.
+
+    Args:
+        grid: Pathfinding grid.
+        a: Start tile.
+        b: End tile.
+
+    Returns:
+        True if all tiles along the line plus clearance are valid.
+    """
+    dx = b[0] - a[0]
+    dy = b[1] - a[1]
+    steps = max(abs(dx), abs(dy))
+    if steps == 0:
+        return True
+
+    step_x = dx / steps
+    step_y = dy / steps
+
+    for s in range(1, steps):
+        x = a[0] + step_x * s
+        y = a[1] + step_y * s
+        for ox in range(-1, 2):
+            for oy in range(-1, 2):
+                if not grid.is_valid(int(x) + ox, int(y) + oy):
+                    return False
+
+    return True
