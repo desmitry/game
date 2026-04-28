@@ -4,11 +4,13 @@ from typing import TYPE_CHECKING
 import pygame
 
 from game.ai.bt_actions import (
+    CheckLineOfSight,
     CheckSuspicion,
     InvestigateLocation,
     MoveToPatrol,
     WanderAction,
 )
+from game.ai.bt_chase import ChaseAction
 from game.ai.bt_composites import Selector, Sequence
 from game.systems.raycast import raycast
 from game.systems.vision_cone import VisionCone
@@ -160,10 +162,16 @@ class Enemy:
         """Construct the enemy's behavior tree.
 
         Returns:
-            Root BTNode of the tree with Wander and Investigate branches.
+            Root BTNode with Chase, Investigate, Patrol, and Wander branches.
         """
         return Selector(
             children=[
+                Sequence(
+                    children=[
+                        CheckLineOfSight(),
+                        ChaseAction(),
+                    ]
+                ),
                 Sequence(
                     children=[
                         CheckSuspicion(),
@@ -175,13 +183,20 @@ class Enemy:
             ]
         )
 
-    def tick_behavior_tree(self, player_x: float, player_y: float) -> None:
+    def tick_behavior_tree(
+        self,
+        player_rect: pygame.Rect,
+        walls: list[pygame.Rect],
+        dt: float,
+    ) -> None:
         """Execute the behavior tree for this frame.
 
         Args:
-            player_x: Player x coordinate.
-            player_y: Player y coordinate.
+            player_rect: Player bounding rectangle.
+            walls: List of wall rectangles for LOS checks.
+            dt: Delta time in seconds.
         """
-        self.bt_context["player_x"] = player_x
-        self.bt_context["player_y"] = player_y
+        self.bt_context["player_rect"] = player_rect
+        self.bt_context["walls"] = walls
+        self.bt_context["dt"] = dt
         self.bt.tick(self.bt_context)

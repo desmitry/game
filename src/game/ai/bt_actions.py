@@ -1,10 +1,10 @@
+from __future__ import annotations
+
 import random
-from typing import TYPE_CHECKING
+
+import pygame  # noqa: TC002
 
 from game.ai.bt_node import BTNode, NodeState
-
-if TYPE_CHECKING:
-    from game.models.enemy import Enemy
 
 
 class WanderAction(BTNode):
@@ -27,7 +27,7 @@ class WanderAction(BTNode):
         Returns:
             SUCCESS after setting a new patrol target.
         """
-        enemy: Enemy = context["enemy"]
+        enemy = context["enemy"]
         offset_x = random.uniform(-self.wander_radius, self.wander_radius)  # noqa: S311
         offset_y = random.uniform(-self.wander_radius, self.wander_radius)  # noqa: S311
         enemy.set_patrol_target(
@@ -49,7 +49,7 @@ class MoveToPatrol(BTNode):
         Returns:
             RUNNING while moving, SUCCESS when target is reached.
         """
-        enemy: Enemy = context["enemy"]
+        enemy = context["enemy"]
         if enemy.is_patrolling:
             return NodeState.RUNNING
         return NodeState.SUCCESS
@@ -67,9 +67,42 @@ class CheckSuspicion(BTNode):
         Returns:
             SUCCESS if the enemy is alerted, FAILURE otherwise.
         """
-        enemy: Enemy = context["enemy"]
+        enemy = context["enemy"]
         if enemy.is_alerted:
             return NodeState.SUCCESS
+        return NodeState.FAILURE
+
+
+class CheckLineOfSight(BTNode):
+    """Condition node that checks if the enemy can see the player."""
+
+    def _tick(self, context: dict) -> NodeState:
+        """Test line of sight from enemy to player.
+
+        Args:
+            context: Behavior tree context containing 'enemy', 'player_rect', 'walls'.
+
+        Returns:
+            SUCCESS if player is visible, FAILURE otherwise.
+        """
+        from game.systems.raycast import raycast
+
+        enemy = context["enemy"]
+        player_rect: pygame.Rect = context["player_rect"]
+        walls: list[pygame.Rect] = context.get("walls", [])
+
+        dx = player_rect.centerx - enemy.x
+        dy = player_rect.centery - enemy.y
+        dist = (dx * dx + dy * dy) ** 0.5
+
+        if dist > enemy.VISION_RADIUS:
+            return NodeState.FAILURE
+
+        if raycast((enemy.x, enemy.y), (player_rect.centerx, player_rect.centery), walls):
+            context["has_los"] = True
+            return NodeState.SUCCESS
+
+        context["has_los"] = False
         return NodeState.FAILURE
 
 
@@ -85,7 +118,7 @@ class InvestigateLocation(BTNode):
         Returns:
             RUNNING while moving, SUCCESS when arrived.
         """
-        enemy: Enemy = context["enemy"]
+        enemy = context["enemy"]
         target_x = context.get("player_x", enemy.x)
         target_y = context.get("player_y", enemy.y)
 
