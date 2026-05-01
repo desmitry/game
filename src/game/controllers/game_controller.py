@@ -88,10 +88,14 @@ class GameController:
             flare.update(dt, FLOOR_Y)
 
         wall_rects = [w.rect for w in self.level.walls]
+        grid = self.level.pathfinding_grid
         for enemy in self.enemies:
             has_los = enemy.can_see_optimized(self.player.x, self.player.y, self.level)
             enemy.update_suspicion(detected=has_los, dt=dt)
-            enemy.tick_behavior_tree(self.player.rect, wall_rects, dt)
+            enemy.tick_behavior_tree(self.player, self.player.rect, wall_rects, grid, dt)
+
+        if self.player.health.is_dead:
+            self.running = False
 
     def _render(self) -> None:
         """Draw the current frame to the screen with multiply blending."""

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from game.ai.pathfinding_grid import PathfindingGrid
 from game.systems.uniform_grid import UniformGrid
 
 if TYPE_CHECKING:
@@ -26,6 +27,15 @@ class Level:
         self.height = height
         self.grid: UniformGrid[Wall] = UniformGrid(CELL_SIZE)
         self.walls: list[Wall] = []
+        self._pf_grid = PathfindingGrid(width // 32, height // 32)
+
+    @property
+    def pathfinding_grid(self) -> PathfindingGrid:
+        """Return the pathfinding grid, rebuilding if needed."""
+        wall_rects = [w.rect for w in self.walls]
+        self._pf_grid.clear_obstacles()
+        self._pf_grid.add_obstacles_from_rects(wall_rects, self.width, self.height)
+        return self._pf_grid
 
     def add_wall(self, wall: Wall) -> None:
         """Register a wall and insert it into the spatial grid.

@@ -17,6 +17,8 @@ from game.systems.vision_cone import VisionCone
 
 if TYPE_CHECKING:
     from game.ai.bt_node import BTNode
+    from game.ai.pathfinding_grid import PathfindingGrid
+    from game.models.player import Player
     from game.systems.level import Level
 
 
@@ -185,18 +187,24 @@ class Enemy:
 
     def tick_behavior_tree(
         self,
+        player: Player,
         player_rect: pygame.Rect,
         walls: list[pygame.Rect],
+        grid: PathfindingGrid,
         dt: float,
     ) -> None:
         """Execute the behavior tree for this frame.
 
         Args:
+            player: Player object for health and attack checks.
             player_rect: Player bounding rectangle.
             walls: List of wall rectangles for LOS checks.
+            grid: Pathfinding grid for chase navigation.
             dt: Delta time in seconds.
         """
+        self.bt_context["player"] = player
         self.bt_context["player_rect"] = player_rect
         self.bt_context["walls"] = walls
+        self.bt_context["grid"] = grid
         self.bt_context["dt"] = dt
         self.bt.tick(self.bt_context)

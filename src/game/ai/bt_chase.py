@@ -18,12 +18,16 @@ class ChaseAction(BTNode):
     """Action node that uses A* to pathfind toward the player."""
 
     PATH_RECALC_INTERVAL = 0.5
+    ATTACK_RANGE = 30.0
+    ATTACK_DAMAGE = 15.0
+    ATTACK_COOLDOWN = 1.5
 
     def __init__(self) -> None:
         """Initialize chase action with recalculation timer."""
         self._path: list[tuple[int, int]] = []
         self._path_index = 0
         self._recalc_timer = 0.0
+        self._attack_timer = 0.0
 
     def _tick(self, context: dict) -> NodeState:
         """Navigate toward the player using A* pathfinding.
@@ -69,6 +73,16 @@ class ChaseAction(BTNode):
         enemy.x += move_x
         enemy.y += move_y
         enemy.rect.center = (int(enemy.x), int(enemy.y))
+
+        self._attack_timer -= dt
+        player_dist = (
+            (enemy.x - player_rect.centerx) ** 2 + (enemy.y - player_rect.centery) ** 2
+        ) ** 0.5
+        if player_dist < self.ATTACK_RANGE and self._attack_timer <= 0:
+            player = context.get("player")
+            if player and player.health:
+                player.health.take_damage(self.ATTACK_DAMAGE)
+                self._attack_timer = self.ATTACK_COOLDOWN
 
         return NodeState.RUNNING
 

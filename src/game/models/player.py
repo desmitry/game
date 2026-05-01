@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 import pygame
 
 from game.models.flashlight import Flashlight
+from game.models.health import Health
 
 if TYPE_CHECKING:
     from game.models.wall import Wall
@@ -29,6 +30,8 @@ class Player:
         self.rect = pygame.Rect(x - 16, y - 16, 32, 32)
         self.collision_rect = self.rect.inflate(-self.SKIN * 2, -self.SKIN * 2)
         self.flashlight = Flashlight()
+        self.health = Health(max_hp=100)
+        self._attack_cooldown = 0.0
 
     def update(self, dt: float, keys: pygame.key.ScancodeWrapper, level: Level) -> None:
         """Update player position based on pressed keys with collision resolution.
