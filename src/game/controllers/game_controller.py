@@ -37,6 +37,8 @@ class GameController:
         )
         self._throw_cooldown = 0.0
         self.enemies: list[Enemy] = []
+        self.current_floor = 1
+        self._floor_cooldown = 0.0
         self._setup_test_walls()
         self._setup_test_enemies()
 
@@ -97,9 +99,15 @@ class GameController:
         if self.player.health.is_dead:
             self.running = False
 
+        self._floor_cooldown = max(0.0, self._floor_cooldown - dt)
+        if keys[pygame.K_RETURN] and self._floor_cooldown <= 0:
+            self._advance_floor()
+            self._floor_cooldown = 2.0
+
     def _render(self) -> None:
         """Draw the current frame to the screen with multiply blending."""
         self.renderer.render(self.player, self.level, self.flare_pool.active, self.enemies)
+        self.renderer.draw_hud(self.current_floor, self.player.health.ratio)
 
     def _setup_test_walls(self) -> None:
         """Load walls from the test map file."""
@@ -127,3 +135,14 @@ class GameController:
             angle=angle,
             speed=300.0,
         )
+
+    def _advance_floor(self) -> None:
+        """Progress to the next floor and reset the level."""
+        self.current_floor += 1
+        self.player.x = SCREEN_WIDTH / 2
+        self.player.y = SCREEN_HEIGHT / 2
+        self.player.rect.center = (int(self.player.x), int(self.player.y))
+        self.enemies.clear()
+        self._setup_test_walls()
+        self._setup_test_enemies()
+        self.flare_pool.release_all()

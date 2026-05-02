@@ -94,3 +94,24 @@ class Renderer:
         self.screen.blit(darkened, (0, 0))
 
         pygame.display.flip()
+
+    def draw_hud(self, floor: int, health_ratio: float) -> None:
+        """Render heads-up display overlay.
+
+        Args:
+            floor: Current floor number.
+            health_ratio: Player health as a fraction from 0.0 to 1.0.
+        """
+        font = pygame.font.SysFont(None, 24)
+        floor_text = font.render(f"Floor {floor}", antialias=True, color=(200, 200, 200))
+        self.screen.blit(floor_text, (10, 10))
+
+        hp_bar_width = 150
+        hp_bar_height = 12
+        hp_x = self.screen.get_width() - hp_bar_width - 10
+        hp_y = 10
+        pygame.draw.rect(self.screen, (60, 60, 60), (hp_x, hp_y, hp_bar_width, hp_bar_height))
+        fill_width = int(hp_bar_width * health_ratio)
+        low_hp_threshold = 0.3
+        color = (200, 50, 50) if health_ratio < low_hp_threshold else (50, 200, 50)
+        pygame.draw.rect(self.screen, color, (hp_x, hp_y, fill_width, hp_bar_height))
