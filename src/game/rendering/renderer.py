@@ -72,7 +72,7 @@ class Renderer:
 
         # Draw enemies
         for enemy in enemies:
-            pygame.draw.rect(self.screen, (180, 50, 50), enemy.rect)
+            pygame.draw.rect(self.screen, enemy.color, enemy.rect)
 
         # Build lightmap
         self.lightmap.clear()

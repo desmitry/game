@@ -6,6 +6,7 @@ from game.models.enemy import Enemy
 from game.models.flare import Flare
 from game.models.player import Player
 from game.rendering.renderer import Renderer
+from game.systems.genetic_algorithm import GeneticAlgorithm
 from game.systems.level import Level
 from game.systems.map_loader import load_map
 from game.systems.object_pool import ObjectPool
@@ -37,6 +38,7 @@ class GameController:
         )
         self._throw_cooldown = 0.0
         self.enemies: list[Enemy] = []
+        self.genetic_algorithm = GeneticAlgorithm()
         self.current_floor = 1
         self._floor_cooldown = 0.0
         self._setup_test_walls()
@@ -89,12 +91,7 @@ class GameController:
         for flare in self.flare_pool.active:
             flare.update(dt, FLOOR_Y)
 
-        wall_rects = [w.rect for w in self.level.walls]
-        grid = self.level.pathfinding_grid
-        for enemy in self.enemies:
-            has_los = enemy.can_see_optimized(self.player.x, self.player.y, self.level)
-            enemy.update_suspicion(detected=has_los, dt=dt)
-            enemy.tick_behavior_tree(self.player, self.player.rect, wall_rects, grid, dt)
+        self._update_enemies(dt)
 
         if self.player.health.is_dead:
             self.running = False
@@ -103,6 +100,30 @@ class GameController:
         if keys[pygame.K_RETURN] and self._floor_cooldown <= 0:
             self._advance_floor()
             self._floor_cooldown = 2.0
+
+    def _update_enemies(self, dt: float) -> None:
+        """Update all enemies and track GA fitness.
+
+        Args:
+            dt: Delta time in seconds.
+        """
+        wall_rects = [w.rect for w in self.level.walls]
+        grid = self.level.pathfinding_grid
+
+        previous_hp = self.player.health.current_hp
+
+        for enemy in self.enemies:
+            has_los = enemy.can_see_optimized(self.player.x, self.player.y, self.level)
+            enemy.update_suspicion(detected=has_los, dt=dt)
+            enemy.tick_behavior_tree(self.player, self.player.rect, wall_rects, grid, dt)
+            if enemy.is_alerted:
+                self.genetic_algorithm.record_tracking_time(enemy.enemy_id, dt)
+
+        damage_taken = previous_hp - self.player.health.current_hp
+        if damage_taken > 0:
+            for enemy in self.enemies:
+                if enemy.is_alerted:
+                    self.genetic_algorithm.record_damage(enemy.enemy_id, damage_taken)
 
     def _render(self) -> None:
         """Draw the current frame to the screen with multiply blending."""
@@ -115,10 +136,11 @@ class GameController:
         load_map(str(map_path), self.level)
 
     def _setup_test_enemies(self) -> None:
-        """Spawn placeholder enemies for development."""
+        """Spawn enemies using GA population genomes."""
         spawn_points = [(200, 200), (600, 300), (900, 150)]
-        for x, y in spawn_points:
-            self.enemies.append(Enemy(x, y))
+        for i, (x, y) in enumerate(spawn_points):
+            genome = self.genetic_algorithm.population[i % len(self.genetic_algorithm.population)]
+            self.enemies.append(Enemy(x, y, genome=genome))
 
     def _throw_flare(self) -> None:
         """Launch a flare from the player position in the facing direction."""
@@ -137,7 +159,8 @@ class GameController:
         )
 
     def _advance_floor(self) -> None:
-        """Progress to the next floor and reset the level."""
+        """Progress to the next floor, evolve enemies, and reset the level."""
+        self.genetic_algorithm.evolve()
         self.current_floor += 1
         self.player.x = SCREEN_WIDTH / 2
         self.player.y = SCREEN_HEIGHT / 2

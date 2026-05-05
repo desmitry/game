@@ -12,6 +12,7 @@ from game.ai.bt_actions import (
 )
 from game.ai.bt_chase import ChaseAction
 from game.ai.bt_composites import Selector, Sequence
+from game.systems.genome import Genome
 from game.systems.raycast import raycast
 from game.systems.vision_cone import VisionCone
 
@@ -26,32 +27,69 @@ class Enemy:
     """Base enemy entity with position and patrol state."""
 
     ARRIVAL_THRESHOLD = 4.0
-    VISION_RADIUS = 200.0
     SUSPICION_THRESHOLD = 0.8
     SUSPICION_DECAY_RATE = 0.3
     SUSPICION_GAIN_RATE = 1.5
+    ENEMY_ID_COUNTER = 0
 
-    def __init__(self, x: float, y: float) -> None:
+    def __init__(self, x: float, y: float, genome: Genome | None = None) -> None:
         """Initialize enemy at the given position.
 
         Args:
             x: Initial x coordinate.
             y: Initial y coordinate.
+            genome: Optional genome to derive traits from.
         """
+        self.enemy_id = Enemy.ENEMY_ID_COUNTER
+        Enemy.ENEMY_ID_COUNTER += 1
+
+        self.genome = genome or Genome()
         self.x = x
         self.y = y
-        self.speed = 100.0
+        self.speed = self.genome.speed
         self.rect = pygame.Rect(x - 14, y - 14, 28, 28)
         self.patrol_target_x = x
         self.patrol_target_y = y
         self.is_patrolling = True
-        self.vision_cone = VisionCone()
+        self.vision_cone = VisionCone(range_=self.genome.vision)
         self.suspicion = 0.0
         self.last_known_player_x = x
         self.last_known_player_y = y
         self.is_alerted = False
         self.bt = self._build_behavior_tree()
         self.bt_context: dict = {"enemy": self}
+        self.color = self._derive_color()
+
+    @staticmethod
+    def _gene_to_color(value: float, low: float, high: float, channel: int) -> int:
+        """Map a gene value to a color channel intensity.
+
+        Args:
+            value: Gene value.
+            low: Minimum expected gene value.
+            high: Maximum expected gene value.
+            channel: 0=R, 1=G, 2=B.
+
+        Returns:
+            Color channel value 0-255.
+        """
+        ratio = (value - low) / (high - low) if high > low else 0.5
+        ratio = max(0.0, min(1.0, ratio))
+        base = [0, 60, 100]
+        variation = int(ratio * 155)
+        base[channel] += variation
+        return min(255, base[channel])
+
+    def _derive_color(self) -> pygame.Color:
+        """Compute a display colour from the genome by mapping each gene to an RGB channel.
+
+        Returns:
+            Pygame Color for rendering.
+        """
+        r = self._gene_to_color(self.genome.speed, Genome.MIN_SPEED, Genome.MAX_SPEED, 0)
+        g = self._gene_to_color(self.genome.vision, Genome.MIN_VISION, Genome.MAX_VISION, 1)
+        b = self._gene_to_color(self.genome.hearing, Genome.MIN_HEARING, Genome.MAX_HEARING, 2)
+        return pygame.Color(r, g, b)
 
     def update(self, dt: float) -> None:
         """Move enemy toward its current patrol target.
@@ -102,7 +140,7 @@ class Enemy:
         dy = target_y - self.y
         dist = (dx * dx + dy * dy) ** 0.5
 
-        if dist > self.VISION_RADIUS:
+        if dist > self.genome.vision:
             return False
 
         return raycast((self.x, self.y), (target_x, target_y), walls)
@@ -122,7 +160,7 @@ class Enemy:
         dy = target_y - self.y
         dist = (dx * dx + dy * dy) ** 0.5
 
-        if dist > self.VISION_RADIUS:
+        if dist > self.genome.vision:
             return False
 
         query_rect = pygame.Rect(

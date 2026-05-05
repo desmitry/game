@@ -95,7 +95,7 @@ class CheckLineOfSight(BTNode):
         dy = player_rect.centery - enemy.y
         dist = (dx * dx + dy * dy) ** 0.5
 
-        if dist > enemy.VISION_RADIUS:
+        if dist > enemy.genome.vision:
             return NodeState.FAILURE
 
         if raycast((enemy.x, enemy.y), (player_rect.centerx, player_rect.centery), walls):
