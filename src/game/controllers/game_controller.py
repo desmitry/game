@@ -19,15 +19,13 @@ FLOOR_Y = SCREEN_HEIGHT - 32
 
 
 class GameController:
-    """Controls the main game loop and fixed timestep updates."""
+    """Controls game logic, updates, and rendering for the playing state."""
 
     def __init__(self) -> None:
-        """Initialize pygame, create the display window, and setup the clock."""
-        pygame.init()
-        pygame.display.set_caption("Eclipsed Evolution")
-        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-        self.clock = pygame.time.Clock()
-        self.running = False
+        """Inititialize game state, player, level, renderer, pools, and GA."""
+        self.screen = pygame.display.get_surface()
+        self.running = True
+        self.paused = False
         self.player = Player(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
         self.level = Level(SCREEN_WIDTH, SCREEN_HEIGHT)
         self.renderer = Renderer(self.screen, SCREEN_WIDTH, SCREEN_HEIGHT)
@@ -41,32 +39,48 @@ class GameController:
         self.genetic_algorithm = GeneticAlgorithm()
         self.current_floor = 1
         self._floor_cooldown = 0.0
+        self._accumulator = 0.0
+        self._pause_just_pressed = False
         self._setup_test_walls()
         self._setup_test_enemies()
 
-    def run(self) -> None:
-        """Execute the main game loop with fixed timestep."""
-        self.running = True
-        accumulator = 0.0
+    def handle_event(self, event: pygame.event.Event) -> None:
+        """Process a single pygame event (for pause toggling and quit).
 
-        while self.running:
-            max_frame_time = 0.25
-            frame_time = self.clock.tick(TARGET_FPS) / 1000.0
-            frame_time = min(frame_time, max_frame_time)
-            accumulator += frame_time
+        Args:
+            event: Pygame event to process.
+        """
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            self.paused = not self.paused
+        elif event.type == pygame.QUIT:
+            self.running = False
 
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.running = False
+    def tick(self, dt: float) -> None:
+        """Advance the simulation by dt seconds with a fixed timestep.
 
-            keys = pygame.key.get_pressed()
-            while accumulator >= FIXED_DT:
+        Args:
+            dt: Delta time in seconds from the real clock.
+        """
+        max_frame_time = 0.25
+        dt = min(dt, max_frame_time)
+        self._accumulator += dt
+
+        keys = pygame.key.get_pressed()
+        while self._accumulator >= FIXED_DT:
+            if not self.paused:
                 self._update(FIXED_DT, keys)
-                accumulator -= FIXED_DT
+            self._accumulator -= FIXED_DT
 
-            self._render()
+    def draw(self, screen: pygame.Surface) -> None:
+        """Render the current frame and optional pause overlay.
 
-        pygame.quit()
+        Args:
+            screen: Pygame display surface.
+        """
+        self._render()
+        if self.paused:
+            self._draw_pause_overlay(screen)
+        pygame.display.flip()
 
     def _update(self, dt: float, keys: pygame.key.ScancodeWrapper) -> None:
         """Process game logic for a single fixed timestep.
@@ -129,6 +143,25 @@ class GameController:
         """Draw the current frame to the screen with multiply blending."""
         self.renderer.render(self.player, self.level, self.flare_pool.active, self.enemies)
         self.renderer.draw_hud(self.current_floor, self.player.health.ratio)
+
+    def _draw_pause_overlay(self, screen: pygame.Surface) -> None:
+        """Draw a semi-transparent pause overlay.
+
+        Args:
+            screen: Pygame display surface.
+        """
+        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 160))
+        screen.blit(overlay, (0, 0))
+
+        font = pygame.font.SysFont(None, 36)
+        text = font.render("PAUSED", antialias=True, color=(200, 200, 200))
+        text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 20))
+        screen.blit(text, text_rect)
+
+        hint = font.render("Press ESC to resume", antialias=True, color=(140, 140, 140))
+        hint_rect = hint.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 30))
+        screen.blit(hint, hint_rect)
 
     def _setup_test_walls(self) -> None:
         """Load walls from the test map file."""
