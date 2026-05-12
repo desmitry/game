@@ -16,6 +16,7 @@ SCREEN_HEIGHT = 720
 TARGET_FPS = 60
 FIXED_DT = 1.0 / TARGET_FPS
 FLOOR_Y = SCREEN_HEIGHT - 32
+SAVE_PATH = Path.home() / ".eclipsed_evolution_save.json"
 
 
 class GameController:
@@ -41,8 +42,14 @@ class GameController:
         self._floor_cooldown = 0.0
         self._accumulator = 0.0
         self._pause_just_pressed = False
+        self._load_save()
         self._setup_test_walls()
         self._setup_test_enemies()
+
+    def _load_save(self) -> None:
+        """Restore GA and floor progress from a save file if available."""
+        if self.genetic_algorithm.load(str(SAVE_PATH)):
+            self.current_floor = max(1, self.genetic_algorithm.generation + 1)
 
     def handle_event(self, event: pygame.event.Event) -> None:
         """Process a single pygame event (for pause toggling and quit).
@@ -108,6 +115,7 @@ class GameController:
         self._update_enemies(dt)
 
         if self.player.health.is_dead:
+            self.genetic_algorithm.save(str(SAVE_PATH))
             self.running = False
 
         self._floor_cooldown = max(0.0, self._floor_cooldown - dt)
@@ -194,6 +202,7 @@ class GameController:
     def _advance_floor(self) -> None:
         """Progress to the next floor, evolve enemies, and reset the level."""
         self.genetic_algorithm.evolve()
+        self.genetic_algorithm.save(str(SAVE_PATH))
         self.current_floor += 1
         self.player.x = SCREEN_WIDTH / 2
         self.player.y = SCREEN_HEIGHT / 2
