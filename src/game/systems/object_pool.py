@@ -63,6 +63,11 @@ class ObjectPool[T]:
         """Return currently in-use entities."""
         return list(self._in_use)
 
+    @property
+    def size(self) -> int:
+        """Total pool capacity (available + in-use)."""
+        return len(self._available) + len(self._in_use)
+
     def resize(self, new_size: int) -> None:
         """Adjust pool capacity, creating or discarding entities as needed.
 

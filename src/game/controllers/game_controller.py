@@ -4,6 +4,7 @@ import pygame
 
 from game.models.enemy import Enemy
 from game.models.flare import Flare
+from game.models.pickup import Pickup
 from game.models.player import Player
 from game.rendering.renderer import Renderer
 from game.systems.genetic_algorithm import GeneticAlgorithm
@@ -37,6 +38,7 @@ class GameController:
         )
         self._throw_cooldown = 0.0
         self.enemies: list[Enemy] = []
+        self.pickups: list[Pickup] = []
         self.genetic_algorithm = GeneticAlgorithm()
         self.current_floor = 1
         self._floor_cooldown = 0.0
@@ -45,6 +47,7 @@ class GameController:
         self._load_save()
         self._setup_test_walls()
         self._setup_test_enemies()
+        self._setup_pickups()
 
     def _load_save(self) -> None:
         """Restore GA and floor progress from a save file if available."""
@@ -97,6 +100,7 @@ class GameController:
             keys: Current keyboard state.
         """
         self.player.update(dt, keys, self.level)
+        self.player.flashlight.update(dt)
 
         rotation_speed = 180.0
         if keys[pygame.K_q]:
@@ -112,6 +116,7 @@ class GameController:
         for flare in self.flare_pool.active:
             flare.update(dt, FLOOR_Y)
 
+        self._update_pickups(dt)
         self._update_enemies(dt)
 
         if self.player.health.is_dead:
@@ -149,8 +154,15 @@ class GameController:
 
     def _render(self) -> None:
         """Draw the current frame to the screen with multiply blending."""
-        self.renderer.render(self.player, self.level, self.flare_pool.active, self.enemies)
-        self.renderer.draw_hud(self.current_floor, self.player.health.ratio)
+        self.renderer.render(
+            self.player, self.level, self.flare_pool.active, self.enemies, self.pickups
+        )
+        self.renderer.draw_hud(
+            self.current_floor,
+            self.player.health.ratio,
+            self.player.flashlight.battery_ratio,
+            self.flare_pool.size - len(self.flare_pool.active),
+        )
 
     def _draw_pause_overlay(self, screen: pygame.Surface) -> None:
         """Draw a semi-transparent pause overlay.
@@ -210,4 +222,22 @@ class GameController:
         self.enemies.clear()
         self._setup_test_walls()
         self._setup_test_enemies()
+        self._setup_pickups()
         self.flare_pool.release_all()
+
+    def _setup_pickups(self) -> None:
+        """Place battery pickups in the level."""
+        positions = [(300, 400), (700, 500), (1000, 200)]
+        self.pickups = [Pickup(x, y) for x, y in positions]
+
+    def _update_pickups(self, dt: float) -> None:
+        """Update pickup respawn timers and check collection.
+
+        Args:
+            dt: Delta time in seconds.
+        """
+        for pickup in self.pickups:
+            pickup.update(dt)
+            if not pickup.collected and pickup.rect.colliderect(self.player.rect):
+                pickup.collect()
+                self.player.flashlight.recharge(25.0)

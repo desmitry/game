@@ -31,6 +31,14 @@ class Flashlight:
         self.fov = fov
         self.range = range_
         self.intensity = intensity
+        self.battery = 100.0
+        self.max_battery = 100.0
+        self.drain_rate = 2.0  # per second
+
+    @property
+    def battery_ratio(self) -> float:
+        """Current battery as a fraction of maximum."""
+        return self.battery / self.max_battery if self.max_battery > 0 else 0.0
 
     def draw(self, lightmap: Lightmap, x: float, y: float) -> None:
         """Draw the flashlight cone onto the given lightmap.
@@ -78,3 +86,23 @@ class Flashlight:
             delta: Angle change in degrees.
         """
         self.angle = (self.angle + delta) % 360
+
+    def update(self, dt: float) -> None:
+        """Drain battery over time.
+
+        Args:
+            dt: Delta time in seconds.
+        """
+        self.battery = max(0.0, self.battery - self.drain_rate * dt)
+        if self.battery <= 0.0:
+            self.intensity = 0.0
+
+    def recharge(self, amount: float) -> None:
+        """Add battery charge.
+
+        Args:
+            amount: Battery amount to add.
+        """
+        self.battery = min(self.max_battery, self.battery + amount)
+        if self.battery > 0.0 and self.intensity == 0.0:
+            self.intensity = 0.95
