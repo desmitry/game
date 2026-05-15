@@ -58,6 +58,7 @@ class Renderer:
             pygame.draw.rect(self.screen, enemy.color, enemy.rect)
 
         self._build_lightmap(player, flares)
+        self.lightmap.apply_gamma()
         self._apply_multiply()
 
         pygame.display.flip()
