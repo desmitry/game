@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pygame
 
+from game.audio.sound_manager import SoundManager
 from game.models.enemy import Enemy
 from game.models.flare import Flare
 from game.models.pickup import Pickup
@@ -45,6 +46,8 @@ class GameController:
         self._accumulator = 0.0
         self._pause_just_pressed = False
         self._load_save()
+        self.sound_manager = SoundManager()
+        self._setup_audio()
         self._setup_test_walls()
         self._setup_test_enemies()
         self._setup_pickups()
@@ -119,7 +122,13 @@ class GameController:
         self._update_pickups(dt)
         self._update_enemies(dt)
 
+        if keys[pygame.K_MINUS]:
+            self.sound_manager.set_music_volume(self.sound_manager.music_volume - 0.1 * dt)
+        if keys[pygame.K_EQUALS]:
+            self.sound_manager.set_music_volume(self.sound_manager.music_volume + 0.1 * dt)
+
         if self.player.health.is_dead:
+            self.sound_manager.play_sfx("death")
             self.genetic_algorithm.save(str(SAVE_PATH))
             self.running = False
 
@@ -195,6 +204,14 @@ class GameController:
             genome = self.genetic_algorithm.population[i % len(self.genetic_algorithm.population)]
             self.enemies.append(Enemy(x, y, genome=genome))
 
+    def _setup_audio(self) -> None:
+        """Load sound effects and start ambient track."""
+        self.sound_manager.load_sfx("flare", "flare.wav")
+        self.sound_manager.load_sfx("hit", "hit.wav")
+        self.sound_manager.load_sfx("death", "death.wav")
+        self.sound_manager.load_sfx("floor", "floor.wav")
+        self.sound_manager.play_ambient("ambient.ogg")
+
     def _throw_flare(self) -> None:
         """Launch a flare from the player position in the facing direction."""
         import math
@@ -210,11 +227,13 @@ class GameController:
             angle=angle,
             speed=300.0,
         )
+        self.sound_manager.play_sfx("flare")
 
     def _advance_floor(self) -> None:
         """Progress to the next floor, evolve enemies, and reset the level."""
         self.genetic_algorithm.evolve()
         self.genetic_algorithm.save(str(SAVE_PATH))
+        self.sound_manager.play_sfx("floor")
         self.current_floor += 1
         self.player.x = SCREEN_WIDTH / 2
         self.player.y = SCREEN_HEIGHT / 2

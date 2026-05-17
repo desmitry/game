@@ -82,6 +82,11 @@ class SoundManager:
         self._music_volume = max(0.0, min(1.0, volume))
         pygame.mixer.music.set_volume(self._music_volume)
 
+    @property
+    def music_volume(self) -> float:
+        """Current music volume (0.0 to 1.0)."""
+        return self._music_volume
+
     def set_sfx_volume(self, volume: float) -> None:
         """Set sound effects volume (0.0 to 1.0).
 
