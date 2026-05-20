@@ -58,6 +58,31 @@ class PathfindingGrid:
             return False
         return (tile_x, tile_y) not in self.obstacles
 
+    def is_blocked(self, tile_x: int, tile_y: int) -> bool:
+        """Check if a tile is blocked.
+
+        Args:
+            tile_x: Tile column index.
+            tile_y: Tile row index.
+
+        Returns:
+            True if the tile is an obstacle.
+        """
+        return (tile_x, tile_y) in self.obstacles
+
+    def set_blocked(self, tile_x: int, tile_y: int, *, blocked: bool = True) -> None:
+        """Mark or unmark a tile as blocked.
+
+        Args:
+            tile_x: Tile column index.
+            tile_y: Tile row index.
+            blocked: Whether the tile should be blocked.
+        """
+        if blocked:
+            self.obstacles.add((tile_x, tile_y))
+        else:
+            self.obstacles.discard((tile_x, tile_y))
+
     def add_obstacles_from_rects(self, rects: list, level_width: int, level_height: int) -> None:
         """Mark tiles occupied by the given rectangles as obstacles.
 

@@ -112,8 +112,14 @@ class Genome:
             rate: Probability per trait of mutation.
             amount: Maximum fractional change applied to mutated traits.
         """
-        for name in self.as_dict():
+        bounds = {
+            "speed": (self.MIN_SPEED, self.MAX_SPEED),
+            "vision": (self.MIN_VISION, self.MAX_VISION),
+            "hearing": (self.MIN_HEARING, self.MAX_HEARING),
+            "light_sensitivity": (self.MIN_LIGHT_SENS, self.MAX_LIGHT_SENS),
+        }
+        for name, (low, high) in bounds.items():
             if random.random() < rate:  # noqa: S311
                 current = getattr(self, name)
                 delta = current * random.uniform(-amount, amount)  # noqa: S311
-                setattr(self, name, self._clamp(current + delta, 0.0, float("inf")))
+                setattr(self, name, self._clamp(current + delta, low, high))
