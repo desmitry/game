@@ -8,8 +8,8 @@ from game.systems.genome import Genome
 
 POPULATION_SIZE = 6
 ELITE_COUNT = 2
-MUTATION_RATE = 0.15
-MUTATION_AMOUNT = 0.25
+MUTATION_RATE = 0.12
+MUTATION_AMOUNT = 0.2
 
 
 class GeneticAlgorithm:

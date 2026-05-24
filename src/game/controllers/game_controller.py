@@ -198,9 +198,16 @@ class GameController:
         load_map(str(map_path), self.level)
 
     def _setup_test_enemies(self) -> None:
-        """Spawn enemies using GA population genomes."""
+        """Spawn enemies using GA population genomes, avoiding wall overlaps."""
         spawn_points = [(200, 200), (600, 300), (900, 150)]
-        for i, (x, y) in enumerate(spawn_points):
+        valid_spawns: list[tuple[float, float]] = []
+        for x, y in spawn_points:
+            test_rect = pygame.Rect(x - 14, y - 14, 28, 28)
+            if not any(test_rect.colliderect(w.rect) for w in self.level.walls):
+                valid_spawns.append((x, y))
+        if not valid_spawns:
+            valid_spawns = [(100, 100)]
+        for i, (x, y) in enumerate(valid_spawns):
             genome = self.genetic_algorithm.population[i % len(self.genetic_algorithm.population)]
             self.enemies.append(Enemy(x, y, genome=genome))
 

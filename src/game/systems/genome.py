@@ -7,13 +7,13 @@ class Genome:
     """Represents an enemy's genetic makeup with evolvable traits."""
 
     MIN_SPEED = 80.0
-    MAX_SPEED = 200.0
-    MIN_VISION = 100.0
-    MAX_VISION = 350.0
-    MIN_HEARING = 50.0
-    MAX_HEARING = 300.0
-    MIN_LIGHT_SENS = 0.1
-    MAX_LIGHT_SENS = 2.0
+    MAX_SPEED = 180.0
+    MIN_VISION = 120.0
+    MAX_VISION = 320.0
+    MIN_HEARING = 60.0
+    MAX_HEARING = 280.0
+    MIN_LIGHT_SENS = 0.2
+    MAX_LIGHT_SENS = 1.8
 
     def __init__(
         self,

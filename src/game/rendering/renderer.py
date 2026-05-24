@@ -123,9 +123,9 @@ class Renderer:
                 self.lightmap.draw_light(
                     flare.x,
                     flare.y,
-                    radius=120.0 * flare.intensity,
+                    radius=150.0 * flare.intensity,
                     color=(255, 140, 50),
-                    intensity=flare.intensity * 0.8,
+                    intensity=flare.intensity * 0.9,
                 )
 
     def _apply_multiply(self) -> None:

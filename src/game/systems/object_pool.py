@@ -80,7 +80,8 @@ class ObjectPool[T]:
                 self._available.append(self._factory())
         elif new_size < total:
             while len(self._available) + len(self._in_use) > new_size:
-                if self._available:
+                if self._in_use:
+                    entity = self._in_use.pop()
+                    self._reset(entity)
+                elif self._available:
                     self._available.pop()
-                elif self._in_use:
-                    self._in_use.pop()
