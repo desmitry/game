@@ -2,8 +2,24 @@ from __future__ import annotations
 
 from contextlib import suppress
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pygame
+
+if TYPE_CHECKING:
+    from pygame.mixer import Sound
+
+
+def _init_pygame_mixer() -> type | None:
+    """Try to import and initialise pygame.mixer, returning the module or None."""
+    try:
+        import pygame.mixer as _mixer
+
+        _mixer.init()
+    except ImportError, pygame.error, ModuleNotFoundError:
+        return None
+    else:
+        return _mixer
 
 
 class SoundManager:
@@ -21,13 +37,12 @@ class SoundManager:
         else:
             self._base = Path(__file__).parent
 
-        self._sfx: dict[str, pygame.mixer.Sound] = {}
+        self._mixer_mod = _init_pygame_mixer()
+        self._available = self._mixer_mod is not None
+        self._sfx: dict[str, Sound] = {}
         self._music_volume = 0.5
         self._sfx_volume = 0.7
         self._ambient_playing = False
-
-        with suppress(pygame.error):
-            pygame.mixer.init()
 
     def load_sfx(self, name: str, filename: str) -> None:
         """Load a sound effect from file.
@@ -36,10 +51,12 @@ class SoundManager:
             name: Identifier to reference the sound later.
             filename: Relative filename within the audio directory.
         """
+        if not self._available:
+            return
         path = self._base / filename
         if path.exists():
             with suppress(pygame.error):
-                sound = pygame.mixer.Sound(str(path))
+                sound = self._mixer_mod.Sound(str(path))  # type: ignore[union-attr]
                 sound.set_volume(self._sfx_volume)
                 self._sfx[name] = sound
 
@@ -60,17 +77,21 @@ class SoundManager:
             filename: Relative path to the music file.
             loops: Number of loops (-1 for infinite).
         """
+        if not self._available:
+            return
         path = self._base / filename
         if path.exists():
             with suppress(pygame.error):
-                pygame.mixer.music.load(str(path))
-                pygame.mixer.music.set_volume(self._music_volume)
-                pygame.mixer.music.play(loops=loops)
+                self._mixer_mod.music.load(str(path))  # type: ignore[union-attr]
+                self._mixer_mod.music.set_volume(self._music_volume)  # type: ignore[union-attr]
+                self._mixer_mod.music.play(loops=loops)  # type: ignore[union-attr]
                 self._ambient_playing = True
 
     def stop_ambient(self) -> None:
         """Stop the currently playing music."""
-        pygame.mixer.music.stop()
+        if not self._available:
+            return
+        self._mixer_mod.music.stop()  # type: ignore[union-attr]
         self._ambient_playing = False
 
     def set_music_volume(self, volume: float) -> None:
@@ -79,8 +100,10 @@ class SoundManager:
         Args:
             volume: Volume level.
         """
+        if not self._available:
+            return
         self._music_volume = max(0.0, min(1.0, volume))
-        pygame.mixer.music.set_volume(self._music_volume)
+        self._mixer_mod.music.set_volume(self._music_volume)  # type: ignore[union-attr]
 
     @property
     def music_volume(self) -> float:
@@ -99,8 +122,10 @@ class SoundManager:
 
     def cleanup(self) -> None:
         """Stop all sounds and quit the mixer."""
+        if not self._available:
+            return
         self.stop_ambient()
         for sound in self._sfx.values():
             sound.stop()
         with suppress(pygame.error):
-            pygame.mixer.quit()
+            self._mixer_mod.quit()  # type: ignore[union-attr]
