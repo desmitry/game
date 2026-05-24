@@ -2,19 +2,18 @@ from __future__ import annotations
 
 import pygame
 
-from game.states.main_menu_state import MainMenuState
-
 TARGET_FPS = 60
 
 
 def main() -> None:
     """Run the game with state machine (menu, playing, paused)."""
-    from game.controllers.game_controller import GameController
-
     pygame.init()
     screen = pygame.display.set_mode((1280, 720))
     pygame.display.set_caption("Eclipsed Evolution")
     clock = pygame.time.Clock()
+
+    from game.controllers.game_controller import GameController
+    from game.states.main_menu_state import MainMenuState
 
     state: MainMenuState | GameController = MainMenuState()
     running = True

@@ -3,6 +3,7 @@ from __future__ import annotations
 import pygame
 
 from game.states.game_state import GameState
+from game.systems.text_renderer import TextRenderer
 
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
@@ -14,8 +15,7 @@ class MainMenuState(GameState):
 
     def __init__(self) -> None:
         """Initialize menu with title font."""
-        self._title_font = pygame.font.SysFont(None, 72)
-        self._prompt_font = pygame.font.SysFont(None, 32)
+        self._text = TextRenderer()
         self._blink_timer = 0.0
         self._show_prompt = True
 
@@ -55,13 +55,11 @@ class MainMenuState(GameState):
         """
         screen.fill((5, 5, 10))
 
-        title = self._title_font.render("Eclipsed Evolution", antialias=True, color=(180, 180, 200))
+        title = self._text.render("Eclipsed Evolution", 72, (180, 180, 200))
         title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 80))
         screen.blit(title, title_rect)
 
-        sub = self._prompt_font.render(
-            "A Top-Down 2D Stealth Survival Game", antialias=True, color=(100, 100, 120)
-        )
+        sub = self._text.render("A Top-Down 2D Stealth Survival Game", 32, (100, 100, 120))
         sub_rect = sub.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 40))
         screen.blit(sub, sub_rect)
 
@@ -73,18 +71,15 @@ class MainMenuState(GameState):
             "",
             "Every floor, enemies evolve to counter your tactics.",
         ]
-        font = pygame.font.SysFont(None, 22)
         y_offset = SCREEN_HEIGHT // 2 + 10
         for line in lines:
-            text = font.render(line, antialias=True, color=(120, 120, 130))
+            text = self._text.render(line, 22, (120, 120, 130))
             text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, y_offset))
             screen.blit(text, text_rect)
             y_offset += 28
 
         if self._show_prompt:
-            prompt = self._prompt_font.render(
-                "Press ENTER to start", antialias=True, color=(150, 150, 150)
-            )
+            prompt = self._text.render("Press ENTER to start", 32, (150, 150, 150))
             prompt_rect = prompt.get_rect(center=(SCREEN_WIDTH // 2, y_offset + 20))
             screen.blit(prompt, prompt_rect)
 

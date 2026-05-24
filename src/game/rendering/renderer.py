@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 import pygame
 
 from game.rendering.lightmap import Lightmap
+from game.systems.text_renderer import TextRenderer
 
 if TYPE_CHECKING:
     from game.models.enemy import Enemy
@@ -29,6 +30,7 @@ class Renderer:
         """
         self.screen = screen
         self.lightmap = Lightmap(width, height)
+        self._text = TextRenderer()
 
     def render(
         self,
@@ -145,9 +147,8 @@ class Renderer:
             battery_ratio: Flashlight battery as a fraction.
             flare_count: Number of flares available.
         """
-        font = pygame.font.SysFont(None, 24)
-        floor_text = font.render(f"Floor {floor}", antialias=True, color=(200, 200, 200))
-        self.screen.blit(floor_text, (10, 10))
+        floor_surf = self._text.render(f"Floor {floor}", 24, (200, 200, 200))
+        self.screen.blit(floor_surf, (10, 10))
 
         hp_bar_width = 150
         hp_bar_height = 12
@@ -167,5 +168,5 @@ class Renderer:
         pygame.draw.rect(self.screen, bat_color, (hp_x, bat_y, bat_fill, hp_bar_height))
 
         # Flare count text
-        flare_text = font.render(f"Flares: {flare_count}/20", antialias=True, color=(200, 200, 200))
-        self.screen.blit(flare_text, (10, 30))
+        flare_surf = self._text.render(f"Flares: {flare_count}/20", 24, (200, 200, 200))
+        self.screen.blit(flare_surf, (10, 30))

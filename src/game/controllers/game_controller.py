@@ -183,14 +183,16 @@ class GameController:
         overlay.fill((0, 0, 0, 160))
         screen.blit(overlay, (0, 0))
 
-        font = pygame.font.SysFont(None, 36)
-        text = font.render("PAUSED", antialias=True, color=(200, 200, 200))
-        text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 20))
-        screen.blit(text, text_rect)
+        from game.systems.text_renderer import TextRenderer
 
-        hint = font.render("Press ESC to resume", antialias=True, color=(140, 140, 140))
-        hint_rect = hint.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 30))
-        screen.blit(hint, hint_rect)
+        text = TextRenderer()
+        pause_surf = text.render("PAUSED", 36, (200, 200, 200))
+        pause_rect = pause_surf.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 20))
+        screen.blit(pause_surf, pause_rect)
+
+        hint_surf = text.render("Press ESC to resume", 36, (140, 140, 140))
+        hint_rect = hint_surf.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 30))
+        screen.blit(hint_surf, hint_rect)
 
     def _setup_test_walls(self) -> None:
         """Load walls from the test map file."""

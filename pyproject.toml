@@ -3,7 +3,10 @@ name = "game"
 version = "0.1.0"
 description = "Eclipsed Evolution - A top-down 2D stealth survival game"
 requires-python = ">=3.14"
-dependencies = ["pygame>=2.6.0"]
+dependencies = [
+    "pillow>=12.2.0",
+    "pygame>=2.6.0",
+]
 
 [build-system]
 requires = ["hatchling"]
