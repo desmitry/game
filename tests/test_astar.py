@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from game.ai.astar import astar
-from game.ai.pathfinding_grid import PathfindingGrid
+from ai.astar import astar
+from ai.pathfinding_grid import PathfindingGrid
 
 
 @pytest.fixture

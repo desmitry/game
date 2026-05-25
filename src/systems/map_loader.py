@@ -3,10 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from game.models.wall import Wall
+from models.wall import Wall
 
 if TYPE_CHECKING:
-    from game.systems.level import Level
+    from systems.level import Level
 
 TILE_SIZE = 32
 WALL_CHAR = "#"

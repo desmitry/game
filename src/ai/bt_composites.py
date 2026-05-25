@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from game.ai.bt_node import BTNode, NodeState
+from ai.bt_node import BTNode, NodeState
 
 
 class Sequence(BTNode):

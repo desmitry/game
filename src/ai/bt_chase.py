@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from game.ai.astar import astar
-from game.ai.bt_node import BTNode, NodeState
-from game.ai.pathfinding_grid import TILE_SIZE, PathfindingGrid
+from ai.astar import astar
+from ai.bt_node import BTNode, NodeState
+from ai.pathfinding_grid import TILE_SIZE, PathfindingGrid
 
 if TYPE_CHECKING:
     import pygame
 
-    from game.models.enemy import Enemy
+    from models.enemy import Enemy
 
 PathNode = tuple[int, int]
 

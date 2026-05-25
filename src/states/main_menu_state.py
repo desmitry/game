@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pygame
 
-from game.states.game_state import GameState
-from game.systems.text_renderer import TextRenderer
+from states.game_state import GameState
+from systems.text_renderer import TextRenderer
 
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
@@ -82,5 +82,3 @@ class MainMenuState(GameState):
             prompt = self._text.render("Press ENTER to start", 32, (150, 150, 150))
             prompt_rect = prompt.get_rect(center=(SCREEN_WIDTH // 2, y_offset + 20))
             screen.blit(prompt, prompt_rect)
-
-        pygame.display.flip()

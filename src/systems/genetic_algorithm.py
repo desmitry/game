@@ -4,7 +4,7 @@ import json
 import random
 from pathlib import Path
 
-from game.systems.genome import Genome
+from systems.genome import Genome
 
 POPULATION_SIZE = 6
 ELITE_COUNT = 2

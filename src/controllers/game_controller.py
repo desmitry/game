@@ -2,20 +2,18 @@ from pathlib import Path
 
 import pygame
 
-from game.audio.sound_manager import SoundManager
-from game.models.enemy import Enemy
-from game.models.flare import Flare
-from game.models.pickup import Pickup
-from game.models.player import Player
-from game.rendering.renderer import Renderer
-from game.systems.genetic_algorithm import GeneticAlgorithm
-from game.systems.level import Level
-from game.systems.map_loader import load_map
-from game.systems.object_pool import ObjectPool
+from audio.sound_manager import SoundManager
+from config import SCREEN_HEIGHT, SCREEN_WIDTH, TARGET_FPS
+from models.enemy import Enemy
+from models.flare import Flare
+from models.pickup import Pickup
+from models.player import Player
+from rendering.renderer import Renderer
+from systems.genetic_algorithm import GeneticAlgorithm
+from systems.level import Level
+from systems.map_loader import load_map
+from systems.object_pool import ObjectPool
 
-SCREEN_WIDTH = 1280
-SCREEN_HEIGHT = 720
-TARGET_FPS = 60
 FIXED_DT = 1.0 / TARGET_FPS
 FLOOR_Y = SCREEN_HEIGHT - 32
 SAVE_PATH = Path.home() / ".eclipsed_evolution_save.json"
@@ -24,9 +22,13 @@ SAVE_PATH = Path.home() / ".eclipsed_evolution_save.json"
 class GameController:
     """Controls game logic, updates, and rendering for the playing state."""
 
-    def __init__(self) -> None:
-        """Inititialize game state, player, level, renderer, pools, and GA."""
-        self.screen = pygame.display.get_surface()
+    def __init__(self, screen: pygame.Surface) -> None:
+        """Inititialize game state, player, level, renderer, pools, and GA.
+
+        Args:
+            screen: Surface to render the game onto.
+        """
+        self.screen = screen
         self.running = True
         self.paused = False
         self.player = Player(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
@@ -93,7 +95,6 @@ class GameController:
         self._render()
         if self.paused:
             self._draw_pause_overlay(screen)
-        pygame.display.flip()
 
     def _update(self, dt: float, keys: pygame.key.ScancodeWrapper) -> None:
         """Process game logic for a single fixed timestep.
@@ -183,7 +184,7 @@ class GameController:
         overlay.fill((0, 0, 0, 160))
         screen.blit(overlay, (0, 0))
 
-        from game.systems.text_renderer import TextRenderer
+        from systems.text_renderer import TextRenderer
 
         text = TextRenderer()
         pause_surf = text.render("PAUSED", 36, (200, 200, 200))
@@ -196,7 +197,7 @@ class GameController:
 
     def _setup_test_walls(self) -> None:
         """Load walls from the test map file."""
-        map_path = Path(__file__).parent.parent / "game" / "maps" / "test_level.txt"
+        map_path = Path(__file__).parent.parent / "maps" / "test_level.txt"
         load_map(str(map_path), self.level)
 
     def _setup_test_enemies(self) -> None:

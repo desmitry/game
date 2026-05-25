@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from game.ai.pathfinding_grid import PathfindingGrid
-from game.systems.uniform_grid import UniformGrid
+from ai.pathfinding_grid import PathfindingGrid
+from systems.uniform_grid import UniformGrid
 
 if TYPE_CHECKING:
     from pygame import Rect
 
-    from game.models.wall import Wall
+    from models.wall import Wall
 
 CELL_SIZE = 64
 

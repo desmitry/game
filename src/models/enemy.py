@@ -3,24 +3,24 @@ from typing import TYPE_CHECKING
 
 import pygame
 
-from game.ai.bt_actions import (
+from ai.bt_actions import (
     CheckLineOfSight,
     CheckSuspicion,
     InvestigateLocation,
     MoveToPatrol,
     WanderAction,
 )
-from game.ai.bt_chase import ChaseAction
-from game.ai.bt_composites import Selector, Sequence
-from game.systems.genome import Genome
-from game.systems.raycast import raycast
-from game.systems.vision_cone import VisionCone
+from ai.bt_chase import ChaseAction
+from ai.bt_composites import Selector, Sequence
+from systems.genome import Genome
+from systems.raycast import raycast
+from systems.vision_cone import VisionCone
 
 if TYPE_CHECKING:
-    from game.ai.bt_node import BTNode
-    from game.ai.pathfinding_grid import PathfindingGrid
-    from game.models.player import Player
-    from game.systems.level import Level
+    from ai.bt_node import BTNode
+    from ai.pathfinding_grid import PathfindingGrid
+    from models.player import Player
+    from systems.level import Level
 
 
 class Enemy:

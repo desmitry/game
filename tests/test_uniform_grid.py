@@ -3,7 +3,7 @@ from __future__ import annotations
 import pygame
 import pytest
 
-from game.systems.uniform_grid import UniformGrid
+from systems.uniform_grid import UniformGrid
 
 
 @pytest.fixture

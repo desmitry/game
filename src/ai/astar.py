@@ -4,7 +4,7 @@ import heapq
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from game.ai.pathfinding_grid import PathfindingGrid
+    from ai.pathfinding_grid import PathfindingGrid
 
 NEIGHBORS = [(1, 0), (-1, 0), (0, 1), (0, -1)]
 CARDINAL_COST = 1.0

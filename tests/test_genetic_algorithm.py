@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from game.systems.genetic_algorithm import POPULATION_SIZE, GeneticAlgorithm
-from game.systems.genome import Genome
+from systems.genetic_algorithm import POPULATION_SIZE, GeneticAlgorithm
+from systems.genome import Genome
 
 
 class TestGenome:

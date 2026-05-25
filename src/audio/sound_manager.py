@@ -16,7 +16,7 @@ def _init_pygame_mixer() -> type | None:
         import pygame.mixer as _mixer
 
         _mixer.init()
-    except ImportError, pygame.error, ModuleNotFoundError:
+    except ImportError, ModuleNotFoundError:
         return None
     else:
         return _mixer

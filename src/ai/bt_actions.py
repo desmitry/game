@@ -4,7 +4,7 @@ import random
 
 import pygame  # noqa: TC002
 
-from game.ai.bt_node import BTNode, NodeState
+from ai.bt_node import BTNode, NodeState
 
 
 class WanderAction(BTNode):
@@ -85,7 +85,7 @@ class CheckLineOfSight(BTNode):
         Returns:
             SUCCESS if player is visible, FAILURE otherwise.
         """
-        from game.systems.raycast import raycast
+        from systems.raycast import raycast
 
         enemy = context["enemy"]
         player_rect: pygame.Rect = context["player_rect"]

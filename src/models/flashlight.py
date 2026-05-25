@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import pygame
 
 if TYPE_CHECKING:
-    from game.rendering.lightmap import Lightmap
+    from rendering.lightmap import Lightmap
 
 
 class Flashlight:

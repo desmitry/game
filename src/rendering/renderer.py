@@ -4,15 +4,15 @@ from typing import TYPE_CHECKING
 
 import pygame
 
-from game.rendering.lightmap import Lightmap
-from game.systems.text_renderer import TextRenderer
+from rendering.lightmap import Lightmap
+from systems.text_renderer import TextRenderer
 
 if TYPE_CHECKING:
-    from game.models.enemy import Enemy
-    from game.models.flare import Flare
-    from game.models.pickup import Pickup
-    from game.models.player import Player
-    from game.systems.level import Level
+    from models.enemy import Enemy
+    from models.flare import Flare
+    from models.pickup import Pickup
+    from models.player import Player
+    from systems.level import Level
 
 LOW_BAT_THRESHOLD = 0.2
 
@@ -60,10 +60,7 @@ class Renderer:
             pygame.draw.rect(self.screen, enemy.color, enemy.rect)
 
         self._build_lightmap(player, flares)
-        self.lightmap.apply_gamma()
         self._apply_multiply()
-
-        pygame.display.flip()
 
     def _draw_walls(self, level: Level) -> None:
         """Draw wall rectangles.
@@ -132,9 +129,7 @@ class Renderer:
 
     def _apply_multiply(self) -> None:
         """Blend lightmap over the scene using multiply."""
-        darkened = self.screen.copy()
-        darkened.blit(self.lightmap.surface, (0, 0), special_flags=pygame.BLEND_MULT)
-        self.screen.blit(darkened, (0, 0))
+        self.screen.blit(self.lightmap.surface, (0, 0), special_flags=pygame.BLEND_MULT)
 
     def draw_hud(
         self, floor: int, health_ratio: float, battery_ratio: float, flare_count: int

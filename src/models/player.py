@@ -4,12 +4,12 @@ from typing import TYPE_CHECKING
 
 import pygame
 
-from game.models.flashlight import Flashlight
-from game.models.health import Health
+from models.flashlight import Flashlight
+from models.health import Health
 
 if TYPE_CHECKING:
-    from game.models.wall import Wall
-    from game.systems.level import Level
+    from models.wall import Wall
+    from systems.level import Level
 
 
 class Player:
@@ -114,13 +114,15 @@ class Player:
             return
 
         if axis == "x":
-            if displacement > 0:
+            if displacement > 0 and self.collision_rect.right > wall.rect.left:
                 self.collision_rect.right = wall.rect.left
-            elif displacement < 0:
+                self.x = self.collision_rect.centerx
+            elif displacement < 0 and self.collision_rect.left < wall.rect.right:
                 self.collision_rect.left = wall.rect.right
-            self.x = self.collision_rect.centerx
-        elif displacement > 0:
+                self.x = self.collision_rect.centerx
+        elif displacement > 0 and self.collision_rect.bottom > wall.rect.top:
             self.collision_rect.bottom = wall.rect.top
-        elif displacement < 0:
+            self.y = self.collision_rect.centery
+        elif displacement < 0 and self.collision_rect.top < wall.rect.bottom:
             self.collision_rect.top = wall.rect.bottom
             self.y = self.collision_rect.centery
