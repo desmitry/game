@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from models.flare import Flare
     from models.pickup import Pickup
     from models.player import Player
+    from models.trapdoor import Trapdoor
     from systems.level import Level
 
 LOW_BAT_THRESHOLD = 0.2
@@ -32,12 +33,13 @@ class Renderer:
         self.lightmap = Lightmap(width, height)
         self._text = TextRenderer()
 
-    def render(
+    def render(  # noqa: PLR0913
         self,
         player: Player,
         level: Level,
         flares: list[Flare],
         enemies: list[Enemy],
+        trapdoor: Trapdoor | None = None,
         pickups: list[Pickup] | None = None,
     ) -> None:
         """Draw the complete scene including lighting and walls.
@@ -47,14 +49,15 @@ class Renderer:
             level: Level containing walls and spatial grid.
             flares: Active flare list for light and rendering.
             enemies: Enemy list for rendering.
+            trapdoor: Optional trapdoor to render.
             pickups: Pickup items to render.
         """
-        self.screen.fill((0, 0, 0))
+        self.screen.fill((35, 30, 25))
 
         self._draw_walls(level)
         self._draw_pickups(pickups)
+        self._draw_trapdoor(trapdoor)
         pygame.draw.rect(self.screen, (128, 128, 128), player.rect)
-        self._draw_flares(flares)
 
         for enemy in enemies:
             pygame.draw.rect(self.screen, enemy.color, enemy.rect)
@@ -83,29 +86,16 @@ class Renderer:
             if not pickup.collected:
                 pygame.draw.rect(self.screen, (50, 200, 50), pickup.rect)
 
-    def _draw_flares(self, flares: list[Flare]) -> None:
-        """Draw active flare markers.
+    def _draw_trapdoor(self, trapdoor: Trapdoor | None) -> None:
+        """Draw the floor exit hatch.
 
         Args:
-            flares: Active flares list.
+            trapdoor: Trapdoor object or None.
         """
-        for flare in flares:
-            if flare.active:
-                alpha = int(flare.intensity * 255)
-                pygame.draw.circle(
-                    self.screen,
-                    (255, 100, 50),
-                    flare.rect.center,
-                    4,
-                )
-                if alpha > 0:
-                    pygame.draw.circle(
-                        self.screen,
-                        (255, 100, 50, alpha),
-                        flare.rect.center,
-                        8,
-                        width=1,
-                    )
+        if trapdoor is None:
+            return
+        pygame.draw.rect(self.screen, (50, 30, 20), trapdoor.rect)
+        pygame.draw.rect(self.screen, (30, 20, 10), trapdoor.rect, width=2)
 
     def _build_lightmap(self, player: Player, flares: list[Flare]) -> None:
         """Clear and populate the lightmap with flashlight and flare light.
@@ -126,23 +116,42 @@ class Renderer:
                     color=(255, 140, 50),
                     intensity=flare.intensity * 0.9,
                 )
+                alpha = int(flare.intensity * 255)
+                pygame.draw.circle(
+                    self.screen,
+                    (255, 100, 50),
+                    flare.rect.center,
+                    4,
+                )
+                if alpha > 0:
+                    pygame.draw.circle(
+                        self.screen,
+                        (255, 100, 50, alpha),
+                        flare.rect.center,
+                        8,
+                        width=1,
+                    )
 
     def _apply_multiply(self) -> None:
         """Blend lightmap over the scene using multiply."""
         self.screen.blit(self.lightmap.surface, (0, 0), special_flags=pygame.BLEND_MULT)
 
     def draw_hud(
-        self, floor: int, health_ratio: float, battery_ratio: float, flare_count: int
+        self,
+        floor: int,
+        health_ratio: float,
+        battery_ratio: float,
+        flare_count: int,
     ) -> None:
         """Render heads-up display overlay.
 
         Args:
-            floor: Current floor number.
+            floor: Current floor number (displayed as -N).
             health_ratio: Player health as a fraction from 0.0 to 1.0.
             battery_ratio: Flashlight battery as a fraction.
             flare_count: Number of flares available.
         """
-        floor_surf = self._text.render(f"Floor {floor}", 24, (200, 200, 200))
+        floor_surf = self._text.render(f"Floor {-floor}", 24, (200, 200, 200))
         self.screen.blit(floor_surf, (10, 10))
 
         hp_bar_width = 150
@@ -164,4 +173,4 @@ class Renderer:
 
         # Flare count text
         flare_surf = self._text.render(f"Flares: {flare_count}/20", 24, (200, 200, 200))
-        self.screen.blit(flare_surf, (10, 30))
+        self.screen.blit(flare_surf, (10, 34))

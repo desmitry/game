@@ -1,3 +1,5 @@
+import math
+import random
 from pathlib import Path
 
 import pygame
@@ -8,6 +10,7 @@ from models.enemy import Enemy
 from models.flare import Flare
 from models.pickup import Pickup
 from models.player import Player
+from models.trapdoor import Trapdoor
 from rendering.renderer import Renderer
 from systems.genetic_algorithm import GeneticAlgorithm
 from systems.level import Level
@@ -42,17 +45,20 @@ class GameController:
         self._throw_cooldown = 0.0
         self.enemies: list[Enemy] = []
         self.pickups: list[Pickup] = []
+        self.trapdoor: Trapdoor | None = None
         self.genetic_algorithm = GeneticAlgorithm()
         self.current_floor = 1
-        self._floor_cooldown = 0.0
         self._accumulator = 0.0
         self._pause_just_pressed = False
+        self._died = False
+        self._death_timer = 0.0
         self._load_save()
         self.sound_manager = SoundManager()
         self._setup_audio()
         self._setup_test_walls()
         self._setup_test_enemies()
         self._setup_pickups()
+        self._setup_trapdoor()
 
     def _load_save(self) -> None:
         """Restore GA and floor progress from a save file if available."""
@@ -69,6 +75,11 @@ class GameController:
             self.paused = not self.paused
         elif event.type == pygame.QUIT:
             self.running = False
+        elif (
+            event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self._throw_cooldown <= 0
+        ):
+            self._throw_flare()
+            self._throw_cooldown = 1.0
 
     def tick(self, dt: float) -> None:
         """Advance the simulation by dt seconds with a fixed timestep.
@@ -95,6 +106,8 @@ class GameController:
         self._render()
         if self.paused:
             self._draw_pause_overlay(screen)
+        if self._died:
+            self._draw_death_overlay(screen)
 
     def _update(self, dt: float, keys: pygame.key.ScancodeWrapper) -> None:
         """Process game logic for a single fixed timestep.
@@ -106,37 +119,41 @@ class GameController:
         self.player.update(dt, keys, self.level)
         self.player.flashlight.update(dt)
 
-        rotation_speed = 180.0
-        if keys[pygame.K_q]:
-            self.player.flashlight.rotate(-rotation_speed * dt)
-        if keys[pygame.K_e]:
-            self.player.flashlight.rotate(rotation_speed * dt)
+        if self.player.health.is_dead and not self._died:
+            self._died = True
+            self._death_timer = 2.0
+            self.sound_manager.play_sfx("death")
+            self.genetic_algorithm.save(str(SAVE_PATH))
+
+        if self._died:
+            self._death_timer -= dt
+            if self._death_timer <= 0:
+                self.genetic_algorithm.reset_population()
+                self.genetic_algorithm.save(str(SAVE_PATH))
+                SAVE_PATH.unlink(missing_ok=True)
+                self.running = False
+            return
+
+        mx, my = pygame.mouse.get_pos()
+        dx = mx - self.player.x
+        dy = my - self.player.y
+        self.player.flashlight.angle = math.degrees(math.atan2(dy, dx)) % 360
 
         self._throw_cooldown = max(0.0, self._throw_cooldown - dt)
-        if keys[pygame.K_f] and self._throw_cooldown <= 0:
-            self._throw_flare()
-            self._throw_cooldown = 1.0
 
         for flare in self.flare_pool.active:
-            flare.update(dt, FLOOR_Y)
+            flare.update(dt, self.level)
 
         self._update_pickups(dt)
         self._update_enemies(dt)
+
+        if self.trapdoor and self.player.rect.colliderect(self.trapdoor.rect):
+            self._advance_floor()
 
         if keys[pygame.K_MINUS]:
             self.sound_manager.set_music_volume(self.sound_manager.music_volume - 0.1 * dt)
         if keys[pygame.K_EQUALS]:
             self.sound_manager.set_music_volume(self.sound_manager.music_volume + 0.1 * dt)
-
-        if self.player.health.is_dead:
-            self.sound_manager.play_sfx("death")
-            self.genetic_algorithm.save(str(SAVE_PATH))
-            self.running = False
-
-        self._floor_cooldown = max(0.0, self._floor_cooldown - dt)
-        if keys[pygame.K_RETURN] and self._floor_cooldown <= 0:
-            self._advance_floor()
-            self._floor_cooldown = 2.0
 
     def _update_enemies(self, dt: float) -> None:
         """Update all enemies and track GA fitness.
@@ -151,10 +168,19 @@ class GameController:
 
         for enemy in self.enemies:
             has_los = enemy.can_see_optimized(self.player.x, self.player.y, self.level)
-            enemy.update_suspicion(detected=has_los, dt=dt)
-            enemy.tick_behavior_tree(self.player, self.player.rect, wall_rects, grid, dt)
+            enemy.update_suspicion(
+                detected=has_los,
+                player_x=self.player.x,
+                player_y=self.player.y,
+                dt=dt,
+            )
+            enemy.tick_behavior_tree(
+                self.player, self.player.rect, wall_rects, grid, dt, has_los=has_los
+            )
             if enemy.is_alerted:
                 self.genetic_algorithm.record_tracking_time(enemy.enemy_id, dt)
+
+        self._resolve_enemy_collisions()
 
         damage_taken = previous_hp - self.player.health.current_hp
         if damage_taken > 0:
@@ -162,10 +188,39 @@ class GameController:
                 if enemy.is_alerted:
                     self.genetic_algorithm.record_damage(enemy.enemy_id, damage_taken)
 
+    def _resolve_enemy_collisions(self) -> None:
+        """Push overlapping enemies apart to prevent stacking."""
+        for i in range(len(self.enemies)):
+            for j in range(i + 1, len(self.enemies)):
+                a = self.enemies[i]
+                b = self.enemies[j]
+                if not a.rect.colliderect(b.rect):
+                    continue
+                dx = a.x - b.x
+                dy = a.y - b.y
+                dist = (dx * dx + dy * dy) ** 0.5
+                if dist < 1.0:
+                    dx, dy = 1.0, 0.0
+                    dist = 1.0
+                overlap = 28 - dist
+                push_x = (dx / dist) * overlap * 0.5
+                push_y = (dy / dist) * overlap * 0.5
+                a.x += push_x
+                a.y += push_y
+                b.x -= push_x
+                b.y -= push_y
+                a.rect.center = (int(a.x), int(a.y))
+                b.rect.center = (int(b.x), int(b.y))
+
     def _render(self) -> None:
         """Draw the current frame to the screen with multiply blending."""
         self.renderer.render(
-            self.player, self.level, self.flare_pool.active, self.enemies, self.pickups
+            self.player,
+            self.level,
+            self.flare_pool.active,
+            self.enemies,
+            self.trapdoor,
+            self.pickups,
         )
         self.renderer.draw_hud(
             self.current_floor,
@@ -195,18 +250,54 @@ class GameController:
         hint_rect = hint_surf.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 30))
         screen.blit(hint_surf, hint_rect)
 
+    def _draw_death_overlay(self, screen: pygame.Surface) -> None:
+        """Draw game-over overlay when the player dies.
+
+        Args:
+            screen: Pygame display surface.
+        """
+        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 180))
+        screen.blit(overlay, (0, 0))
+
+        from systems.text_renderer import TextRenderer
+
+        text = TextRenderer()
+        game_over = text.render("GAME OVER", 48, (200, 40, 40))
+        go_rect = game_over.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 20))
+        screen.blit(game_over, go_rect)
+
+        hint = text.render("Returning to menu...", 28, (140, 140, 140))
+        hint_rect = hint.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 30))
+        screen.blit(hint, hint_rect)
+
     def _setup_test_walls(self) -> None:
         """Load walls from the test map file."""
         map_path = Path(__file__).parent.parent / "maps" / "test_level.txt"
         load_map(str(map_path), self.level)
 
     def _setup_test_enemies(self) -> None:
-        """Spawn enemies using GA population genomes, avoiding wall overlaps."""
-        spawn_points = [(200, 200), (600, 300), (900, 150)]
+        """Spawn enemies using GA population genomes, avoiding walls and player."""
+        candidate_spawns = [
+            (200, 200),
+            (400, 150),
+            (700, 200),
+            (1000, 150),
+            (300, 450),
+            (500, 550),
+            (800, 500),
+            (1050, 450),
+            (250, 300),
+            (900, 300),
+            (600, 600),
+            (1100, 350),
+        ]
         valid_spawns: list[tuple[float, float]] = []
-        for x, y in spawn_points:
+        for x, y in candidate_spawns:
             test_rect = pygame.Rect(x - 14, y - 14, 28, 28)
-            if not any(test_rect.colliderect(w.rect) for w in self.level.walls):
+            blocked_by_wall = any(test_rect.colliderect(w.rect) for w in self.level.walls)
+            too_close_to_player = ((x - self.player.x) ** 2 + (y - self.player.y) ** 2) ** 0.5 < 200  # noqa: PLR2004
+            if not blocked_by_wall and not too_close_to_player:
                 valid_spawns.append((x, y))
         if not valid_spawns:
             valid_spawns = [(100, 100)]
@@ -224,8 +315,6 @@ class GameController:
 
     def _throw_flare(self) -> None:
         """Launch a flare from the player position in the facing direction."""
-        import math
-
         flare = self.flare_pool.acquire()
         if flare is None:
             return
@@ -248,16 +337,38 @@ class GameController:
         self.player.x = SCREEN_WIDTH / 2
         self.player.y = SCREEN_HEIGHT / 2
         self.player.rect.center = (int(self.player.x), int(self.player.y))
+        self.player.health.heal(9999)
         self.enemies.clear()
         self._setup_test_walls()
         self._setup_test_enemies()
         self._setup_pickups()
+        self._setup_trapdoor()
         self.flare_pool.release_all()
 
     def _setup_pickups(self) -> None:
         """Place battery pickups in the level."""
-        positions = [(300, 400), (700, 500), (1000, 200)]
+        positions = [(450, 300), (600, 500), (400, 550)]
         self.pickups = [Pickup(x, y) for x, y in positions]
+
+    def _setup_trapdoor(self) -> None:
+        """Place the floor exit hatch on a random valid tile."""
+        candidates = []
+        for tx in range(40):
+            for ty in range(21):
+                wx = tx * 32 + 16
+                wy = ty * 32 + 16
+                tr = pygame.Rect(wx - 16, wy - 16, 32, 32)
+                blocked = any(tr.colliderect(w.rect) for w in self.level.walls)
+                if blocked:
+                    continue
+                dist_to_player = ((wx - self.player.x) ** 2 + (wy - self.player.y) ** 2) ** 0.5
+                if dist_to_player > 300:  # noqa: PLR2004
+                    candidates.append((wx, wy))
+        if candidates:
+            x, y = random.choice(candidates)  # noqa: S311
+            self.trapdoor = Trapdoor(x, y)
+        else:
+            self.trapdoor = Trapdoor(SCREEN_WIDTH / 2, 100)
 
     def _update_pickups(self, dt: float) -> None:
         """Update pickup respawn timers and check collection.

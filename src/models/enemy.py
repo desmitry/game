@@ -6,6 +6,7 @@ import pygame
 from ai.bt_actions import (
     CheckLineOfSight,
     CheckSuspicion,
+    HasPursuitTarget,
     InvestigateLocation,
     MoveToPatrol,
     WanderAction,
@@ -59,26 +60,23 @@ class Enemy:
         self.bt = self._build_behavior_tree()
         self.bt_context: dict = {"enemy": self}
         self.color = self._derive_color()
+        self._pursuit_timer = 0.0
 
     @staticmethod
-    def _gene_to_color(value: float, low: float, high: float, channel: int) -> int:
-        """Map a gene value to a color channel intensity.
+    def _gene_to_color(value: float, low: float, high: float) -> int:
+        """Map a gene value to a 0-255 colour intensity.
 
         Args:
             value: Gene value.
             low: Minimum expected gene value.
             high: Maximum expected gene value.
-            channel: 0=R, 1=G, 2=B.
 
         Returns:
-            Color channel value 0-255.
+            Colour channel value 0-255.
         """
         ratio = (value - low) / (high - low) if high > low else 0.5
         ratio = max(0.0, min(1.0, ratio))
-        base = [0, 60, 100]
-        variation = int(ratio * 155)
-        base[channel] += variation
-        return min(255, base[channel])
+        return int(ratio * 255)
 
     def _derive_color(self) -> pygame.Color:
         """Compute a display colour from the genome by mapping each gene to an RGB channel.
@@ -86,9 +84,9 @@ class Enemy:
         Returns:
             Pygame Color for rendering.
         """
-        r = self._gene_to_color(self.genome.speed, Genome.MIN_SPEED, Genome.MAX_SPEED, 0)
-        g = self._gene_to_color(self.genome.vision, Genome.MIN_VISION, Genome.MAX_VISION, 1)
-        b = self._gene_to_color(self.genome.hearing, Genome.MIN_HEARING, Genome.MAX_HEARING, 2)
+        r = self._gene_to_color(self.genome.speed, Genome.MIN_SPEED, Genome.MAX_SPEED)
+        g = self._gene_to_color(self.genome.vision, Genome.MIN_VISION, Genome.MAX_VISION)
+        b = self._gene_to_color(self.genome.hearing, Genome.MIN_HEARING, Genome.MAX_HEARING)
         return pygame.Color(r, g, b)
 
     def update(self, dt: float) -> None:
@@ -174,11 +172,15 @@ class Enemy:
 
         return raycast((self.x, self.y), (target_x, target_y), wall_rects)
 
-    def update_suspicion(self, *, detected: bool, dt: float) -> None:
+    def update_suspicion(
+        self, *, detected: bool, player_x: float, player_y: float, dt: float
+    ) -> None:
         """Update suspicion meter with hysteresis behavior.
 
         Args:
             detected: Whether the player is currently detected.
+            player_x: Player's current x coordinate (for last-known tracking).
+            player_y: Player's current y coordinate (for last-known tracking).
             dt: Delta time in seconds.
         """
         if detected:
@@ -186,7 +188,8 @@ class Enemy:
                 1.0,
                 self.suspicion + self.SUSPICION_GAIN_RATE * dt,
             )
-            self.last_known_player_x = self.vision_cone.angle
+            self.last_known_player_x = player_x
+            self.last_known_player_y = player_y
         else:
             self.suspicion = max(
                 0.0,
@@ -214,6 +217,12 @@ class Enemy:
                 ),
                 Sequence(
                     children=[
+                        HasPursuitTarget(),
+                        InvestigateLocation(),
+                    ]
+                ),
+                Sequence(
+                    children=[
                         CheckSuspicion(),
                         InvestigateLocation(),
                     ]
@@ -223,13 +232,14 @@ class Enemy:
             ]
         )
 
-    def tick_behavior_tree(
+    def tick_behavior_tree(  # noqa: PLR0913
         self,
         player: Player,
         player_rect: pygame.Rect,
         walls: list[pygame.Rect],
         grid: PathfindingGrid,
         dt: float,
+        has_los: bool = False,  # noqa: FBT001,FBT002
     ) -> None:
         """Execute the behavior tree for this frame.
 
@@ -239,10 +249,22 @@ class Enemy:
             walls: List of wall rectangles for LOS checks.
             grid: Pathfinding grid for chase navigation.
             dt: Delta time in seconds.
+            has_los: Pre-computed line-of-sight result for this frame.
         """
+        if has_los:
+            self._pursuit_timer = self.genome.hearing * 0.01
+            self.last_known_player_x = player.x
+            self.last_known_player_y = player.y
+        else:
+            self._pursuit_timer = max(0.0, self._pursuit_timer - dt)
+
         self.bt_context["player"] = player
         self.bt_context["player_rect"] = player_rect
+        self.bt_context["player_x"] = self.last_known_player_x
+        self.bt_context["player_y"] = self.last_known_player_y
         self.bt_context["walls"] = walls
         self.bt_context["grid"] = grid
         self.bt_context["dt"] = dt
+        self.bt_context["has_los"] = has_los
+        self.bt_context["pursuit_timer"] = self._pursuit_timer
         self.bt.tick(self.bt_context)

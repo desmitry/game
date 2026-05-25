@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import pygame
 
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 class Player:
     """Represents the player character with position and movement state."""
 
-    SKIN = 2  # Collision skin shrink in pixels to allow wall sliding.
+    SKIN = 0
 
     def __init__(self, x: float, y: float) -> None:
         """Initialize player at the given position.
@@ -78,7 +78,9 @@ class Player:
 
         return dx, dy
 
-    def _move_axis(self, move_x: float, move_y: float, level: Level, axis: str) -> None:
+    def _move_axis(
+        self, move_x: float, move_y: float, level: Level, axis: Literal["x", "y"]
+    ) -> None:
         """Move the player along one axis and resolve wall collisions.
 
         Args:
@@ -99,10 +101,9 @@ class Player:
         for wall in level.get_nearby_walls(self.collision_rect):
             self._resolve_collision(wall, displacement, axis)
 
-        self.rect.centerx = int(self.x)
-        self.rect.centery = int(self.y)
+        self.rect.center = (int(self.x), int(self.y))
 
-    def _resolve_collision(self, wall: Wall, displacement: float, axis: str) -> None:
+    def _resolve_collision(self, wall: Wall, displacement: float, axis: Literal["x", "y"]) -> None:
         """Resolve overlap with a single wall along the given axis.
 
         Args:

@@ -12,6 +12,11 @@
         pkgs = import nixpkgs { inherit system; };
       in {
         devShells.default = pkgs.mkShell {
+          buildInputs = with pkgs; [
+            stdenv.cc.cc.lib
+            zlib
+          ];
+
           packages = with pkgs; [
             python314
             uv
@@ -34,6 +39,11 @@
             mesa
             libpulseaudio
           ];
+
+          shellHook = ''
+            export PYTHONPATH="$PWD/src''${PYTHONPATH:+:$PYTHONPATH}"
+            export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath (with pkgs; [ stdenv.cc.cc.lib zlib ])}''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          '';
         };
       }
     );

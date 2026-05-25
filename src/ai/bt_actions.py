@@ -50,9 +50,24 @@ class MoveToPatrol(BTNode):
             RUNNING while moving, SUCCESS when target is reached.
         """
         enemy = context["enemy"]
-        if enemy.is_patrolling:
-            return NodeState.RUNNING
-        return NodeState.SUCCESS
+        dt = context.get("dt", 0.016)
+        if not enemy.is_patrolling:
+            return NodeState.SUCCESS
+
+        dx = enemy.patrol_target_x - enemy.x
+        dy = enemy.patrol_target_y - enemy.y
+        dist = (dx * dx + dy * dy) ** 0.5
+
+        if dist < enemy.ARRIVAL_THRESHOLD:
+            enemy.is_patrolling = False
+            return NodeState.SUCCESS
+
+        move_x = (dx / dist) * enemy.speed * dt
+        move_y = (dy / dist) * enemy.speed * dt
+        enemy.x += move_x
+        enemy.y += move_y
+        enemy.rect.center = (int(enemy.x), int(enemy.y))
+        return NodeState.RUNNING
 
 
 class CheckSuspicion(BTNode):
@@ -79,12 +94,19 @@ class CheckLineOfSight(BTNode):
     def _tick(self, context: dict) -> NodeState:
         """Test line of sight from enemy to player.
 
+        Uses the pre-computed has_los from the controller when available,
+        falling back to raycast against all walls otherwise.
+
         Args:
-            context: Behavior tree context containing 'enemy', 'player_rect', 'walls'.
+            context: Behavior tree context containing 'enemy', 'has_los'.
 
         Returns:
             SUCCESS if player is visible, FAILURE otherwise.
         """
+        has_los = context.get("has_los")
+        if has_los is not None:
+            return NodeState.SUCCESS if has_los else NodeState.FAILURE
+
         from systems.raycast import raycast
 
         enemy = context["enemy"]
@@ -106,6 +128,27 @@ class CheckLineOfSight(BTNode):
         return NodeState.FAILURE
 
 
+class HasPursuitTarget(BTNode):
+    """Condition node that checks if the enemy has an active pursuit target.
+
+    The pursuit timer is set when the enemy last saw the player and decays
+    at a rate scaled by the hearing gene. Higher hearing = longer pursuit.
+    """
+
+    def _tick(self, context: dict) -> NodeState:
+        """Check whether pursuit is still active.
+
+        Args:
+            context: Behavior tree context containing 'pursuit_timer'.
+
+        Returns:
+            SUCCESS if pursuit timer > 0, FAILURE otherwise.
+        """
+        if context.get("pursuit_timer", 0.0) > 0.0:
+            return NodeState.SUCCESS
+        return NodeState.FAILURE
+
+
 class InvestigateLocation(BTNode):
     """Action node that sends the enemy to the last known player position."""
 
@@ -121,6 +164,7 @@ class InvestigateLocation(BTNode):
         enemy = context["enemy"]
         target_x = context.get("player_x", enemy.x)
         target_y = context.get("player_y", enemy.y)
+        dt = context.get("dt", 0.016)
 
         enemy.set_patrol_target(target_x, target_y)
 
@@ -130,4 +174,10 @@ class InvestigateLocation(BTNode):
 
         if dist < enemy.ARRIVAL_THRESHOLD:
             return NodeState.SUCCESS
+
+        move_x = (dx / dist) * enemy.speed * dt
+        move_y = (dy / dist) * enemy.speed * dt
+        enemy.x += move_x
+        enemy.y += move_y
+        enemy.rect.center = (int(enemy.x), int(enemy.y))
         return NodeState.RUNNING

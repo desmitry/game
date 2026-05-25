@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import math
 from typing import TYPE_CHECKING
 
+import numpy as np
 import pygame
 
 if TYPE_CHECKING:
@@ -15,7 +15,7 @@ class Flashlight:
     def __init__(
         self,
         angle: float = 0.0,
-        fov: float = 45.0,
+        fov: float = 70.0,
         range_: float = 250.0,
         intensity: float = 0.95,
     ) -> None:
@@ -33,7 +33,8 @@ class Flashlight:
         self.intensity = intensity
         self.battery = 100.0
         self.max_battery = 100.0
-        self.drain_rate = 2.0  # per second
+        self.drain_rate = 2.0
+        self._gradient: pygame.Surface | None = None
 
     @property
     def battery_ratio(self) -> float:
@@ -48,36 +49,39 @@ class Flashlight:
             x: Origin x coordinate.
             y: Origin y coordinate.
         """
-        half_fov = self.fov / 2
-        steps = 32
-        start_angle = self.angle - half_fov
-        step_size = self.fov / steps
+        sigma = self.fov / 4
+        size = int(self.range * 2)
+        center = int(self.range)
 
-        for i in range(steps):
-            ray_angle = start_angle + step_size * i
-            ray_angle_rad = math.radians(ray_angle)
-            ray_angle_next = math.radians(ray_angle + step_size)
+        if self._gradient is None or self._gradient.get_width() != size:
+            self._gradient = pygame.Surface((size, size))
 
-            end_x = x + math.cos(ray_angle_rad) * self.range
-            end_y = y + math.sin(ray_angle_rad) * self.range
-            end_x_next = x + math.cos(ray_angle_next) * self.range
-            end_y_next = y + math.sin(ray_angle_next) * self.range
+        self._gradient.fill(lightmap.AMBIENT)
 
-            # Fade intensity toward edges of cone and distance
-            edge_factor = 1.0 - abs((i - steps / 2) / (steps / 2)) ** 2
-            dist_factor = 0.7
-            alpha = int(self.intensity * 255 * edge_factor * dist_factor)
+        coords = np.arange(size) - center
+        xx, yy = np.meshgrid(coords, coords, indexing="ij")
 
-            points = [
-                (x, y),
-                (end_x, end_y),
-                (end_x_next, end_y_next),
-            ]
-            pygame.draw.polygon(
-                lightmap.surface,
-                (255, 255, 255, alpha),
-                points,
-            )
+        dist_sq = xx * xx + yy * yy
+        range_sq = self.range * self.range
+
+        dist_factor = np.maximum(0.0, 1.0 - dist_sq / range_sq)
+
+        pixel_angle = np.degrees(np.arctan2(yy, xx))
+        angle_diff = (pixel_angle - self.angle + 180) % 360 - 180
+        angle_factor = np.exp(-(angle_diff * angle_diff) / (2 * sigma * sigma))
+
+        brightness = 255.0 * self.intensity * dist_factor * angle_factor
+        brightness = np.clip(brightness, 0, 255).astype(np.uint8)
+
+        arr = pygame.surfarray.pixels3d(self._gradient)
+        arr[:] = np.stack([brightness, brightness, brightness], axis=-1)
+        del arr
+
+        lightmap.surface.blit(
+            self._gradient,
+            (int(x) - center, int(y) - center),
+            special_flags=pygame.BLEND_RGB_ADD,
+        )
 
     def rotate(self, delta: float) -> None:
         """Rotate the flashlight by the given delta angle.

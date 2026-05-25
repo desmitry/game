@@ -18,7 +18,7 @@ class GeneticAlgorithm:
     def __init__(self) -> None:
         """Initialize GA with a starting population."""
         self.generation = 0
-        self.population: list[Genome] = [Genome() for _ in range(POPULATION_SIZE)]
+        self.population: list[Genome] = [Genome.random() for _ in range(POPULATION_SIZE)]
         self._fitness: list[float] = [0.0] * POPULATION_SIZE
         self._tracked_enemies: dict[int, float] = {}
 
