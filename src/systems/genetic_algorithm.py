@@ -21,6 +21,21 @@ class GeneticAlgorithm:
         self.population: list[Genome] = [Genome.random() for _ in range(POPULATION_SIZE)]
         self._fitness: list[float] = [0.0] * POPULATION_SIZE
         self._tracked_enemies: dict[int, float] = {}
+        self.best_floor = 0
+
+    def update_best_floor(self, current_floor: int) -> bool:
+        """Update the best (deepest) floor reached.
+
+        Args:
+            current_floor: The floor the player was on (depth).
+
+        Returns:
+            True if a new record was set.
+        """
+        if current_floor > self.best_floor:
+            self.best_floor = current_floor
+            return True
+        return False
 
     def reset_population(self) -> None:
         """Create a fresh random population for a new game."""
@@ -121,6 +136,7 @@ class GeneticAlgorithm:
         data = {
             "generation": self.generation,
             "population": [g.as_dict() for g in self.population],
+            "best_floor": self.best_floor,
         }
         with Path(filepath).open("w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
@@ -142,5 +158,6 @@ class GeneticAlgorithm:
             data = json.load(f)
         self.generation = data.get("generation", 0)
         self.population = [Genome(**g) for g in data.get("population", [])]
+        self.best_floor = data.get("best_floor", 0)
         self._fitness = [0.0] * len(self.population)
         return True

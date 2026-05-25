@@ -7,7 +7,7 @@ class Genome:
     """Represents an enemy's genetic makeup with evolvable traits."""
 
     MIN_SPEED = 80.0
-    MAX_SPEED = 180.0
+    MAX_SPEED = 130.0
     MIN_VISION = 120.0
     MAX_VISION = 320.0
     MIN_HEARING = 60.0

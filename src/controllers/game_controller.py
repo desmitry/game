@@ -25,13 +25,22 @@ SAVE_PATH = Path.home() / ".eclipsed_evolution_save.json"
 class GameController:
     """Controls game logic, updates, and rendering for the playing state."""
 
-    def __init__(self, screen: pygame.Surface) -> None:
+    def __init__(
+        self,
+        screen: pygame.Surface,
+        mouse_scale_x: float = 1.0,
+        mouse_scale_y: float = 1.0,
+    ) -> None:
         """Inititialize game state, player, level, renderer, pools, and GA.
 
         Args:
             screen: Surface to render the game onto.
+            mouse_scale_x: Horizontal scale from screen coords to game coords.
+            mouse_scale_y: Vertical scale from screen coords to game coords.
         """
         self.screen = screen
+        self.mouse_scale_x = mouse_scale_x
+        self.mouse_scale_y = mouse_scale_y
         self.running = True
         self.paused = False
         self.player = Player(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
@@ -52,6 +61,7 @@ class GameController:
         self._pause_just_pressed = False
         self._died = False
         self._death_timer = 0.0
+        self._new_record = False
         self._load_save()
         self.sound_manager = SoundManager()
         self._setup_audio()
@@ -123,6 +133,7 @@ class GameController:
             self._died = True
             self._death_timer = 2.0
             self.sound_manager.play_sfx("death")
+            self._new_record = self.genetic_algorithm.update_best_floor(self.current_floor)
             self.genetic_algorithm.save(str(SAVE_PATH))
 
         if self._died:
@@ -135,6 +146,8 @@ class GameController:
             return
 
         mx, my = pygame.mouse.get_pos()
+        mx *= self.mouse_scale_x
+        my *= self.mouse_scale_y
         dx = mx - self.player.x
         dy = my - self.player.y
         self.player.flashlight.angle = math.degrees(math.atan2(dy, dx)) % 360
@@ -268,8 +281,18 @@ class GameController:
         screen.blit(game_over, go_rect)
 
         hint = text.render("Returning to menu...", 28, (140, 140, 140))
-        hint_rect = hint.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 30))
+        hint_rect = hint.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 20))
         screen.blit(hint, hint_rect)
+
+        depth = self.current_floor - 1
+        floor_text = text.render(f"Depth reached: {depth}", 28, (140, 140, 140))
+        ft_rect = floor_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 50))
+        screen.blit(floor_text, ft_rect)
+
+        if self._new_record:
+            record = text.render("NEW RECORD!", 28, (60, 200, 60))
+            rec_rect = record.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 80))
+            screen.blit(record, rec_rect)
 
     def _setup_test_walls(self) -> None:
         """Load walls from the test map file."""

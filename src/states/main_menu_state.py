@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import pygame
 
 from states.game_state import GameState
@@ -8,16 +11,34 @@ from systems.text_renderer import TextRenderer
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
 BLINK_INTERVAL = 0.5
+SAVE_PATH = Path.home() / ".eclipsed_evolution_save.json"
 
 
 class MainMenuState(GameState):
     """Title screen with start prompt."""
 
     def __init__(self) -> None:
-        """Initialize menu with title font."""
+        """Initialize menu with title font and load best score."""
         self._text = TextRenderer()
         self._blink_timer = 0.0
         self._show_prompt = True
+        self._best_depth = self._load_best_depth()
+
+    @staticmethod
+    def _load_best_depth() -> int:
+        """Load the best (deepest) floor depth from the save file.
+
+        Returns:
+            Best depth reached (0 = none).
+        """
+        if not SAVE_PATH.exists():
+            return 0
+        try:
+            with SAVE_PATH.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+            return data.get("best_floor", 0)
+        except json.JSONDecodeError, OSError:
+            return 0
 
     def handle_event(self, event: pygame.event.Event) -> str | None:
         """Start the game on ENTER key press.
@@ -64,12 +85,16 @@ class MainMenuState(GameState):
         screen.blit(sub, sub_rect)
 
         lines = [
-            "You are a scavenger trapped in an abandoned,",
-            "completely dark subterranean research facility.",
-            "Survive by managing light sources and avoiding",
-            "biological anomalies that hunt you.",
+            "You are a scavenger who infiltrated an abandoned",
+            "subterranean research facility, searching for",
+            "the legendary AI core — your ticket out of the",
+            "wasteland. The facility descends deep underground.",
             "",
-            "Every floor, enemies evolve to counter your tactics.",
+            "Each floor is sealed by a trapdoor. Step on it to",
+            "descend deeper. The anomalies get stronger the",
+            "further down you go — they evolve to hunt you.",
+            "",
+            "Survive. Descend. Escape.",
         ]
         y_offset = SCREEN_HEIGHT // 2 + 10
         for line in lines:
@@ -82,3 +107,8 @@ class MainMenuState(GameState):
             prompt = self._text.render("Press ENTER to start", 32, (150, 150, 150))
             prompt_rect = prompt.get_rect(center=(SCREEN_WIDTH // 2, y_offset + 20))
             screen.blit(prompt, prompt_rect)
+
+        if self._best_depth > 0:
+            best = self._text.render(f"Best depth: {self._best_depth}", 22, (160, 160, 140))
+            best_rect = best.get_rect(bottomright=(SCREEN_WIDTH - 15, SCREEN_HEIGHT - 15))
+            screen.blit(best, best_rect)

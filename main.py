@@ -46,6 +46,8 @@ def _dispatch_event(
     event: pygame.event.Event,
     state: MainMenuState | GameController,
     game_surface: pygame.Surface,
+    mouse_scale_x: float = 1.0,
+    mouse_scale_y: float = 1.0,
 ) -> MainMenuState | GameController:
     """Dispatch a Pygame event to the current state.
 
@@ -53,6 +55,8 @@ def _dispatch_event(
         event: Incoming Pygame event.
         state: Current game state.
         game_surface: Surface to render onto.
+        mouse_scale_x: Screen-to-game horizontal scale.
+        mouse_scale_y: Screen-to-game vertical scale.
 
     Returns:
         The (possibly new) state after handling the event.
@@ -60,7 +64,7 @@ def _dispatch_event(
     if isinstance(state, MainMenuState):
         result = state.handle_event(event)
         if result == "playing":
-            return GameController(game_surface)
+            return GameController(game_surface, mouse_scale_x, mouse_scale_y)
     elif isinstance(state, GameController):
         state.handle_event(event)
     return state
@@ -70,6 +74,8 @@ def _tick_state(
     dt: float,
     state: MainMenuState | GameController,
     game_surface: pygame.Surface,
+    mouse_scale_x: float = 1.0,
+    mouse_scale_y: float = 1.0,
 ) -> MainMenuState | GameController:
     """Update and draw one frame of the current state.
 
@@ -77,6 +83,8 @@ def _tick_state(
         dt: Delta time in seconds.
         state: Current game state.
         game_surface: Surface to render onto.
+        mouse_scale_x: Screen-to-game horizontal scale.
+        mouse_scale_y: Screen-to-game vertical scale.
 
     Returns:
         The (possibly new) state after the frame.
@@ -85,6 +93,8 @@ def _tick_state(
         state.update(dt)
         state.draw(game_surface)
     elif isinstance(state, GameController):
+        state.mouse_scale_x = mouse_scale_x
+        state.mouse_scale_y = mouse_scale_y
         state.tick(dt)
         state.draw(game_surface)
         if not state.running:
@@ -107,15 +117,19 @@ def main() -> None:
     while running:
         dt = clock.tick(TARGET_FPS) / 1000.0
 
+        win_w, win_h = window_surface.get_size()
+        mouse_scale_x = SCREEN_WIDTH / win_w
+        mouse_scale_y = SCREEN_HEIGHT / win_h
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
                 fullscreen = not fullscreen
                 window_surface = _toggle_fullscreen(fullscreen=fullscreen)
-            state = _dispatch_event(event, state, game_surface)
+            state = _dispatch_event(event, state, game_surface, mouse_scale_x, mouse_scale_y)
 
-        state = _tick_state(dt, state, game_surface)
+        state = _tick_state(dt, state, game_surface, mouse_scale_x, mouse_scale_y)
         _blit_scaled(window_surface, game_surface)
         pygame.display.flip()
 
