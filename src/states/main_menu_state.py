@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import pygame
 
+from config import BEST_SCORE_PATH
 from states.game_state import GameState
 from systems.text_renderer import TextRenderer
 
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
 BLINK_INTERVAL = 0.5
-BEST_SCORE_PATH = Path.home() / ".eclipsed_evolution_best.json"
 
 
 class MainMenuState(GameState):

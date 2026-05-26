@@ -5,7 +5,7 @@ from pathlib import Path
 import pygame
 
 from audio.sound_manager import SoundManager
-from config import SCREEN_HEIGHT, SCREEN_WIDTH, TARGET_FPS
+from config import BEST_SCORE_PATH, SAVE_PATH, SCREEN_HEIGHT, SCREEN_WIDTH, TARGET_FPS
 from models.enemy import Enemy
 from models.flare import Flare
 from models.pickup import Pickup
@@ -19,8 +19,6 @@ from systems.object_pool import ObjectPool
 
 FIXED_DT = 1.0 / TARGET_FPS
 FLOOR_Y = SCREEN_HEIGHT - 32
-SAVE_PATH = Path.home() / ".eclipsed_evolution_save.json"
-BEST_SCORE_PATH = Path.home() / ".eclipsed_evolution_best.json"
 
 
 class GameController:

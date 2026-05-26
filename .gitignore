@@ -49,3 +49,7 @@ Cargo.lock
 # OS
 .DS_Store
 Thumbs.db
+
+# Game runtime
+game_save.json
+game_best.json
