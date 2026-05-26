@@ -6,7 +6,7 @@ from config import SCREEN_HEIGHT, SCREEN_WIDTH, TARGET_FPS
 from controllers.game_controller import GameController
 from states.main_menu_state import MainMenuState
 
-DISPLAY_FLAGS = pygame.SCALED | pygame.DOUBLEBUF
+DISPLAY_FLAGS = pygame.DOUBLEBUF
 
 
 def _toggle_fullscreen(*, fullscreen: bool) -> pygame.Surface:

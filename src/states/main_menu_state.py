@@ -87,18 +87,16 @@ class MainMenuState(GameState):
         lines = [
             "You are a scavenger who infiltrated an abandoned",
             "subterranean research facility, searching for",
-            "the legendary AI core — your ticket out of the",
+            "a legendary processing unit: your ticket out of the",
             "wasteland. The facility descends deep underground.",
             "",
             "Each floor is sealed by a trapdoor. Step on it to",
             "descend deeper. The anomalies get stronger the",
-            "further down you go — they evolve to hunt you.",
-            "",
-            "Survive. Descend. Escape.",
+            "further down you go: they evolve to hunt you.",
         ]
         y_offset = SCREEN_HEIGHT // 2 + 10
         for line in lines:
-            text = self._text.render(line, 22, (120, 120, 130))
+            text = self._text.render(line, 44, (120, 120, 130))
             text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, y_offset))
             screen.blit(text, text_rect)
             y_offset += 28

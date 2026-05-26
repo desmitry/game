@@ -120,16 +120,6 @@ class GameController:
             dt: Delta time in seconds.
             keys: Current keyboard state.
         """
-        self.player.update(dt, keys, self.level)
-        self.player.flashlight.update(dt)
-
-        if self.player.health.is_dead and not self._died:
-            self._died = True
-            self._death_timer = 2.0
-            self.sound_manager.play_sfx("death")
-            self._new_record = self.genetic_algorithm.update_best_floor(self.current_floor)
-            self.genetic_algorithm.save(str(SAVE_PATH))
-
         if self._died:
             self._death_timer -= dt
             if self._death_timer <= 0:
@@ -137,6 +127,17 @@ class GameController:
                 self.genetic_algorithm.save(str(SAVE_PATH))
                 SAVE_PATH.unlink(missing_ok=True)
                 self.running = False
+            return
+
+        self.player.update(dt, keys, self.level)
+        self.player.flashlight.update(dt)
+
+        if self.player.health.is_dead:
+            self._died = True
+            self._death_timer = 2.0
+            self.sound_manager.play_sfx("death")
+            self._new_record = self.genetic_algorithm.update_best_floor(self.current_floor)
+            self.genetic_algorithm.save(str(SAVE_PATH))
             return
 
         sx, sy = pygame.mouse.get_pos()
