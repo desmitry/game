@@ -25,22 +25,16 @@ SAVE_PATH = Path.home() / ".eclipsed_evolution_save.json"
 class GameController:
     """Controls game logic, updates, and rendering for the playing state."""
 
-    def __init__(
-        self,
-        screen: pygame.Surface,
-        mouse_scale_x: float = 1.0,
-        mouse_scale_y: float = 1.0,
-    ) -> None:
+    def __init__(self, screen: pygame.Surface) -> None:
         """Inititialize game state, player, level, renderer, pools, and GA.
 
         Args:
             screen: Surface to render the game onto.
-            mouse_scale_x: Horizontal scale from screen coords to game coords.
-            mouse_scale_y: Vertical scale from screen coords to game coords.
         """
         self.screen = screen
-        self.mouse_scale_x = mouse_scale_x
-        self.mouse_scale_y = mouse_scale_y
+        self.viewport_x = 0
+        self.viewport_y = 0
+        self.viewport_scale = 1.0
         self.running = True
         self.paused = False
         self.player = Player(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
@@ -145,9 +139,9 @@ class GameController:
                 self.running = False
             return
 
-        mx, my = pygame.mouse.get_pos()
-        mx *= self.mouse_scale_x
-        my *= self.mouse_scale_y
+        sx, sy = pygame.mouse.get_pos()
+        mx = (sx - self.viewport_x) / self.viewport_scale
+        my = (sy - self.viewport_y) / self.viewport_scale
         dx = mx - self.player.x
         dy = my - self.player.y
         self.player.flashlight.angle = math.degrees(math.atan2(dy, dx)) % 360
