@@ -20,6 +20,7 @@ from systems.object_pool import ObjectPool
 FIXED_DT = 1.0 / TARGET_FPS
 FLOOR_Y = SCREEN_HEIGHT - 32
 SAVE_PATH = Path.home() / ".eclipsed_evolution_save.json"
+BEST_SCORE_PATH = Path.home() / ".eclipsed_evolution_best.json"
 
 
 class GameController:
@@ -68,6 +69,14 @@ class GameController:
         """Restore GA and floor progress from a save file if available."""
         if self.genetic_algorithm.load(str(SAVE_PATH)):
             self.current_floor = max(1, self.genetic_algorithm.generation + 1)
+
+    def _save_best_score(self) -> None:
+        """Persist the deepest floor reached to a permanent file."""
+        import json
+
+        data = {"best_floor": self.genetic_algorithm.best_floor}
+        with BEST_SCORE_PATH.open("w", encoding="utf-8") as f:
+            json.dump(data, f)
 
     def handle_event(self, event: pygame.event.Event) -> None:
         """Process a single pygame event (for pause toggling and quit).
@@ -137,6 +146,7 @@ class GameController:
             self._death_timer = 2.0
             self.sound_manager.play_sfx("death")
             self._new_record = self.genetic_algorithm.update_best_floor(self.current_floor)
+            self._save_best_score()
             self.genetic_algorithm.save(str(SAVE_PATH))
             return
 

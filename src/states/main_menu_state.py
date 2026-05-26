@@ -11,7 +11,7 @@ from systems.text_renderer import TextRenderer
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
 BLINK_INTERVAL = 0.5
-SAVE_PATH = Path.home() / ".eclipsed_evolution_save.json"
+BEST_SCORE_PATH = Path.home() / ".eclipsed_evolution_best.json"
 
 
 class MainMenuState(GameState):
@@ -31,10 +31,10 @@ class MainMenuState(GameState):
         Returns:
             Best depth reached (0 = none).
         """
-        if not SAVE_PATH.exists():
+        if not BEST_SCORE_PATH.exists():
             return 0
         try:
-            with SAVE_PATH.open("r", encoding="utf-8") as f:
+            with BEST_SCORE_PATH.open("r", encoding="utf-8") as f:
                 data = json.load(f)
             return data.get("best_floor", 0)
         except json.JSONDecodeError, OSError:
