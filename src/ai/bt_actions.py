@@ -1,10 +1,50 @@
 from __future__ import annotations
 
 import random
-
-import pygame  # noqa: TC002
+from typing import TYPE_CHECKING
 
 from ai.bt_node import BTNode, NodeState
+
+if TYPE_CHECKING:
+    from models.enemy import Enemy
+    from systems.level import Level
+
+
+def move_with_collision(
+    enemy: Enemy,
+    move_x: float,
+    move_y: float,
+    level: Level,
+) -> None:
+    """Move an enemy per-axis with wall collision resolution.
+
+    Args:
+        enemy: Enemy instance to move.
+        move_x: Displacement along the x-axis.
+        move_y: Displacement along the y-axis.
+        level: Level containing walls for collision queries.
+    """
+    enemy.x += move_x
+    enemy.rect.centerx = int(enemy.x)
+    for wall in level.get_nearby_walls(enemy.rect):
+        if enemy.rect.colliderect(wall.rect):
+            if move_x > 0:
+                enemy.rect.right = wall.rect.left
+            elif move_x < 0:
+                enemy.rect.left = wall.rect.right
+            enemy.x = float(enemy.rect.centerx)
+
+    enemy.y += move_y
+    enemy.rect.centery = int(enemy.y)
+    for wall in level.get_nearby_walls(enemy.rect):
+        if enemy.rect.colliderect(wall.rect):
+            if move_y > 0:
+                enemy.rect.bottom = wall.rect.top
+            elif move_y < 0:
+                enemy.rect.top = wall.rect.bottom
+            enemy.y = float(enemy.rect.centery)
+
+    enemy.rect.center = (int(enemy.x), int(enemy.y))
 
 
 class WanderAction(BTNode):
@@ -65,9 +105,7 @@ class MoveToPatrol(BTNode):
 
         move_x = (dx / dist) * enemy.speed * dt
         move_y = (dy / dist) * enemy.speed * dt
-        enemy.x += move_x
-        enemy.y += move_y
-        enemy.rect.center = (int(enemy.x), int(enemy.y))
+        move_with_collision(enemy, move_x, move_y, context["level"])
         return NodeState.RUNNING
 
 
@@ -111,8 +149,7 @@ class CheckLineOfSight(BTNode):
         from systems.raycast import raycast
 
         enemy = context["enemy"]
-        player_rect: pygame.Rect = context["player_rect"]
-        walls: list[pygame.Rect] = context.get("walls", [])
+        player_rect = context["player_rect"]
 
         dx = player_rect.centerx - enemy.x
         dy = player_rect.centery - enemy.y
@@ -121,6 +158,7 @@ class CheckLineOfSight(BTNode):
         if dist > enemy.genome.vision:
             return NodeState.FAILURE
 
+        walls = [w.rect for w in context["level"].walls]
         if raycast((enemy.x, enemy.y), (player_rect.centerx, player_rect.centery), walls):
             context["has_los"] = True
             return NodeState.SUCCESS
@@ -178,7 +216,5 @@ class InvestigateLocation(BTNode):
 
         move_x = (dx / dist) * enemy.speed * dt
         move_y = (dy / dist) * enemy.speed * dt
-        enemy.x += move_x
-        enemy.y += move_y
-        enemy.rect.center = (int(enemy.x), int(enemy.y))
+        move_with_collision(enemy, move_x, move_y, context["level"])
         return NodeState.RUNNING

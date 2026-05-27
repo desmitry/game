@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from ai.astar import astar
+from ai.bt_actions import move_with_collision
 from ai.bt_node import BTNode, NodeState
 from ai.pathfinding_grid import TILE_SIZE, PathfindingGrid
 
@@ -68,9 +69,7 @@ class ChaseAction(BTNode):
             else:
                 move_x = (dx / dist) * enemy.speed * 1.5 * dt
                 move_y = (dy / dist) * enemy.speed * 1.5 * dt
-                enemy.x += move_x
-                enemy.y += move_y
-                enemy.rect.center = (int(enemy.x), int(enemy.y))
+                move_with_collision(enemy, move_x, move_y, context["level"])
                 moved = True
 
         if not moved:
@@ -80,9 +79,7 @@ class ChaseAction(BTNode):
             if dist > enemy.ARRIVAL_THRESHOLD:
                 move_x = (dx / dist) * enemy.speed * 1.5 * dt
                 move_y = (dy / dist) * enemy.speed * 1.5 * dt
-                enemy.x += move_x
-                enemy.y += move_y
-                enemy.rect.center = (int(enemy.x), int(enemy.y))
+                move_with_collision(enemy, move_x, move_y, context["level"])
 
         self._attack_timer -= dt
         if player_dist < self.ATTACK_RANGE and self._attack_timer <= 0:

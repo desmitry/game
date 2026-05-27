@@ -177,7 +177,6 @@ class GameController:
         Args:
             dt: Delta time in seconds.
         """
-        wall_rects = [w.rect for w in self.level.walls]
         grid = self.level.pathfinding_grid
 
         previous_hp = self.player.health.current_hp
@@ -191,7 +190,7 @@ class GameController:
                 dt=dt,
             )
             enemy.tick_behavior_tree(
-                self.player, self.player.rect, wall_rects, grid, dt, has_los=has_los
+                self.player, self.player.rect, self.level, grid, dt, has_los=has_los
             )
             if enemy.is_alerted:
                 self.genetic_algorithm.record_tracking_time(enemy.enemy_id, dt)

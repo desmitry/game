@@ -236,7 +236,7 @@ class Enemy:
         self,
         player: Player,
         player_rect: pygame.Rect,
-        walls: list[pygame.Rect],
+        level: Level,
         grid: PathfindingGrid,
         dt: float,
         has_los: bool = False,  # noqa: FBT001,FBT002
@@ -246,7 +246,7 @@ class Enemy:
         Args:
             player: Player object for health and attack checks.
             player_rect: Player bounding rectangle.
-            walls: List of wall rectangles for LOS checks.
+            level: Level for wall collision queries and LOS checks.
             grid: Pathfinding grid for chase navigation.
             dt: Delta time in seconds.
             has_los: Pre-computed line-of-sight result for this frame.
@@ -262,7 +262,7 @@ class Enemy:
         self.bt_context["player_rect"] = player_rect
         self.bt_context["player_x"] = self.last_known_player_x
         self.bt_context["player_y"] = self.last_known_player_y
-        self.bt_context["walls"] = walls
+        self.bt_context["level"] = level
         self.bt_context["grid"] = grid
         self.bt_context["dt"] = dt
         self.bt_context["has_los"] = has_los
