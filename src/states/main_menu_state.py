@@ -95,7 +95,7 @@ class MainMenuState(GameState):
         ]
         y_offset = SCREEN_HEIGHT // 2 + 10
         for line in lines:
-            text = self._text.render(line, 44, (120, 120, 130))
+            text = self._text.render(line, 22, (120, 120, 130))
             text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, y_offset))
             screen.blit(text, text_rect)
             y_offset += 28

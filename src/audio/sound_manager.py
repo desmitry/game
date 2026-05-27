@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from pygame.mixer import Sound
 
 
-def _init_pygame_mixer() -> type | None:
+def _init_pygame_mixer() -> pygame.mixer | None:
     """Try to import and initialise pygame.mixer, returning the module or None."""
     try:
         import pygame.mixer as _mixer
