@@ -51,5 +51,5 @@ Cargo.lock
 Thumbs.db
 
 # Game runtime
-game_save.json
-game_best.json
+.game_save.json
+.game_best.json
