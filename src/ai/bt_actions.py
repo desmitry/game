@@ -47,12 +47,13 @@ class MoveToPatrol(BTNode):
             context: Behavior tree context containing 'enemy'.
 
         Returns:
-            RUNNING while moving, SUCCESS when target is reached.
+            RUNNING while moving, SUCCESS when target is reached,
+            FAILURE when no patrol target is set.
         """
         enemy = context["enemy"]
         dt = context.get("dt", 0.016)
         if not enemy.is_patrolling:
-            return NodeState.SUCCESS
+            return NodeState.FAILURE
 
         dx = enemy.patrol_target_x - enemy.x
         dy = enemy.patrol_target_y - enemy.y

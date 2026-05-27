@@ -108,7 +108,7 @@ class Flare:
 
     @property
     def intensity(self) -> float:
-        """Current brightness based on remaining lifetime."""
+        """Current brightness based on remaining lifetime (log-lerp)."""
         remaining = max(0.0, self.LIFETIME - self.elapsed)
         t = remaining / self.LIFETIME
         return math.log(1 + 99 * t, 100)

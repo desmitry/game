@@ -44,12 +44,14 @@ class Flashlight:
     def draw(self, lightmap: Lightmap, x: float, y: float) -> None:
         """Draw the flashlight cone onto the given lightmap.
 
+        Uses quadratic radial falloff (I = 1 - d²/r²) and quadratic
+        angular falloff outside the half-FOV.
+
         Args:
             lightmap: Lightmap instance to draw onto.
             x: Origin x coordinate.
             y: Origin y coordinate.
         """
-        sigma = self.fov / 4
         size = int(self.range * 2)
         center = int(self.range)
 
@@ -66,9 +68,10 @@ class Flashlight:
 
         dist_factor = np.maximum(0.0, 1.0 - dist_sq / range_sq)
 
+        half_fov = self.fov / 2.0
         pixel_angle = np.degrees(np.arctan2(yy, xx))
         angle_diff = (pixel_angle - self.angle + 180) % 360 - 180
-        angle_factor = np.exp(-(angle_diff * angle_diff) / (2 * sigma * sigma))
+        angle_factor = np.clip(1.0 - (angle_diff / half_fov) ** 2, 0.0, 1.0)
 
         brightness = 255.0 * self.intensity * dist_factor * angle_factor
         brightness = np.clip(brightness, 0, 255).astype(np.uint8)

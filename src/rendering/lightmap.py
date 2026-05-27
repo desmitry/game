@@ -32,12 +32,13 @@ class Lightmap:
     ) -> None:
         """Draw a radial gradient light onto the lightmap using additive blending.
 
-        Uses quadratic distance falloff (I = 1 - d²/r²), isotropic.
+        Uses isotropic (omnidirectional) inverse-square falloff with a
+        smooth fade to zero at the edge of the render radius.
 
         Args:
             x: Center x coordinate of the light.
             y: Center y coordinate of the light.
-            radius: Maximum reach of the light in pixels.
+            radius: Render radius in pixels (light fades smoothly to 0 at this edge).
             color: RGB color tuple for the light.
             intensity: Brightness multiplier from 0.0 to 1.0.
         """
@@ -55,7 +56,9 @@ class Lightmap:
         dist_sq = xx * xx + yy * yy
         radius_sq = radius * radius
 
-        dist_factor = np.where(dist_sq < radius_sq, 1.0 - dist_sq / radius_sq, 0.0)
+        inv_sq = 1.0 / (1.0 + dist_sq / radius_sq)
+        edge_fade = np.clip(1.0 - dist_sq / radius_sq, 0.0, 1.0)
+        dist_factor = inv_sq * edge_fade
         brightness = np.clip(255 * intensity * dist_factor, 0, 255).astype(np.uint8)
 
         brightness_f = brightness.astype(np.float32)
