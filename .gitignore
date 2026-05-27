@@ -2,6 +2,7 @@
 .direnv/
 .envrc
 flake.lock
+flake.nix
 
 # Python
 __pycache__/
