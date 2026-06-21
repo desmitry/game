@@ -196,6 +196,7 @@ class GameController:
                 self.genetic_algorithm.record_tracking_time(enemy.enemy_id, dt)
 
         self._resolve_enemy_collisions()
+        self._resolve_enemy_wall_collisions()
 
         damage_taken = previous_hp - self.player.health.current_hp
         if damage_taken > 0:
@@ -226,6 +227,37 @@ class GameController:
                 b.y -= push_y
                 a.rect.center = (int(a.x), int(a.y))
                 b.rect.center = (int(b.x), int(b.y))
+
+    def _resolve_enemy_wall_collisions(self) -> None:
+        """Push enemies out of walls after enemy-enemy collision resolution."""
+        for enemy in self.enemies:
+            for _ in range(3):
+                hit = False
+                for wall in self.level.get_nearby_walls(enemy.rect):
+                    if not enemy.rect.colliderect(wall.rect):
+                        continue
+                    hit = True
+                    overlap_right = enemy.rect.right - wall.rect.left
+                    overlap_left = wall.rect.right - enemy.rect.left
+                    overlap_bottom = enemy.rect.bottom - wall.rect.top
+                    overlap_top = wall.rect.bottom - enemy.rect.top
+                    min_h = min(overlap_right, overlap_left)
+                    min_v = min(overlap_bottom, overlap_top)
+                    if min_h < min_v:
+                        if overlap_right < overlap_left:
+                            enemy.rect.right = wall.rect.left
+                        else:
+                            enemy.rect.left = wall.rect.right
+                        enemy.x = float(enemy.rect.centerx)
+                    else:
+                        if overlap_bottom < overlap_top:
+                            enemy.rect.bottom = wall.rect.top
+                        else:
+                            enemy.rect.top = wall.rect.bottom
+                        enemy.y = float(enemy.rect.centery)
+                    break
+                if not hit:
+                    break
 
     def _render(self) -> None:
         """Draw the current frame to the screen with multiply blending."""
